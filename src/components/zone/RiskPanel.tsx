@@ -151,13 +151,13 @@ export function RiskPanel({ riskEvaluation, eventId, zoneName }: RiskPanelProps)
         </div>
       </div>
 
-      {/* Amazon Bedrock AI Decision Explainer */}
+      {/* Operator Synthesis & Decision Directives */}
       <div className="border-t border-slate-800 pt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold font-mono text-slate-200">
-              Amazon Bedrock Operator Synthesis
+              Operator Synthesis (Bedrock-Ready Schema)
             </span>
           </div>
 
@@ -167,7 +167,7 @@ export function RiskPanel({ riskEvaluation, eventId, zoneName }: RiskPanelProps)
             className="px-2.5 py-1 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-xs font-mono font-medium transition-colors flex items-center space-x-1.5 disabled:opacity-50"
           >
             <Sparkles className="w-3 h-3 text-cyan-400" />
-            <span>{aiLoading ? 'Synthesizing...' : 'Explain Decision with AI'}</span>
+            <span>{aiLoading ? 'Synthesizing...' : 'Synthesize Directives'}</span>
           </button>
         </div>
 

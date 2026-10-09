@@ -13,12 +13,20 @@ import { createInitialZones } from './synthetic-data';
 import { evaluateRestartRisk, calculateEvidenceCompleteness } from './risk-engine';
 import { transitionRestartEvent } from './state-machine';
 import { DEMO_THRESHOLDS } from './constants';
+import { ISafeRestartAdapter } from './contracts/interfaces';
+import { LocalSafeRestartAdapter } from './adapters/local-store-adapter';
 
 export class SimulationStore {
   private state: SimulationState;
+  private adapter: ISafeRestartAdapter;
 
   constructor() {
+    this.adapter = new LocalSafeRestartAdapter();
     this.state = this.getInitialState();
+  }
+
+  public getAdapter(): ISafeRestartAdapter {
+    return this.adapter;
   }
 
   public getInitialState(): SimulationState {

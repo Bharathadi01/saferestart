@@ -97,9 +97,9 @@ export function Navigation({
         {/* Action Controls & AWS Cloud Status */}
         <div className="flex items-center space-x-2.5">
           {/* Environment Indicator */}
-          <div className="hidden lg:flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono">
-            <Cloud className="w-3.5 h-3.5 text-cyan-400" />
-            <span>AWS Serverless Architecture</span>
+          <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Local Adapter • AWS-Ready Architecture</span>
           </div>
 
           {/* Simulation Controls */}
