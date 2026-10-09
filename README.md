@@ -475,4 +475,4 @@ In compliance with hackathon transparency guidelines:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE) (pending final selection). Please see the [`LICENSE`](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE). Please see the [`LICENSE`](LICENSE) file for details.
