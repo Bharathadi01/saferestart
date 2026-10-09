@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SafeRestart - Intermittent Drinking-Water Restart Decision-Support Infrastructure (AWS Serverless Architecture)
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Tracing: Active
+    Environment:
+      Variables:
+        ZONES_TABLE: !Ref ZonesTable
+        RESTART_EVENTS_TABLE: !Ref RestartEventsTable
+        AUDIT_TRAIL_TABLE: !Ref AuditTrailTable
+        EVIDENCE_BUCKET: !Ref EvidenceBucket
+        EVENT_BUS_NAME: !Ref SafeRestartEventBus
+        BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0'
+        POWERTOOLS_SERVICE_NAME: SafeRestartService
+        POWERTOOLS_METRICS_NAMESPACE: SafeRestart
+
+Parameters:
+  EnvironmentStage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment stage name
+
+Resources:
+  # ------------------------------------------------------------
+  # 1. API GATEWAY HTTP API
+  # ------------------------------------------------------------
+  SafeRestartHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref EnvironmentStage
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowOrigins:
+          - '*'
+
+  # ------------------------------------------------------------
+  # 2. AMAZON DYNAMODB TABLES
+  # ------------------------------------------------------------
+  ZonesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saferestart-zones-${EnvironmentStage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  RestartEventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saferestart-events-${EnvironmentStage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: zoneId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ZoneIdIndex
+          KeySchema:
+            - AttributeName: zoneId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  AuditTrailTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saferestart-audit-${EnvironmentStage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: zoneId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ZoneTimestampIndex
+          KeySchema:
+            - AttributeName: zoneId
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # ------------------------------------------------------------
+  # 3. AMAZON S3 BUCKET FOR FIELD EVIDENCE & PHOTOGRAPHS
+  # ------------------------------------------------------------
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub saferestart-evidence-${AWS::AccountId}-${EnvironmentStage}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  # ------------------------------------------------------------
+  # 4. AMAZON EVENTBRIDGE CUSTOM EVENT BUS
+  # ------------------------------------------------------------
+  SafeRestartEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub saferestart-bus-${EnvironmentStage}
+
+  # ------------------------------------------------------------
+  # 5. CORE AWS LAMBDA FUNCTIONS
+  # ------------------------------------------------------------
+  GetZonesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./serverless/dist
+      Handler: handlers/getZones.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ZonesTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SafeRestartHttpApi
+            Path: /zones
+            Method: GET
+
+  EvaluateRiskFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./serverless/dist
+      Handler: handlers/evaluateRisk.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RestartEventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditTrailTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref SafeRestartEventBus
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SafeRestartHttpApi
+            Path: /restart-events/{id}/request
+            Method: POST
+
+  SubmitVerificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./serverless/dist
+      Handler: handlers/submitVerification.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RestartEventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditTrailTable
+        - S3CrudPolicy:
+            BucketName: !Ref EvidenceBucket
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref SafeRestartEventBus
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SafeRestartHttpApi
+            Path: /restart-events/{id}/verification
+            Method: POST
+
+  AuthorizeRestorationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./serverless/dist
+      Handler: handlers/authorizeRestoration.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RestartEventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditTrailTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ZonesTable
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref SafeRestartEventBus
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SafeRestartHttpApi
+            Path: /restart-events/{id}/approve
+            Method: POST
+
+  BedrockExplainFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./serverless/dist
+      Handler: handlers/bedrockExplain.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SafeRestartHttpApi
+            Path: /bedrock/explain
+            Method: POST
+
+Outputs:
+  HttpApiUrl:
+    Description: HTTP API endpoint URL
+    Value: !Sub https://${SafeRestartHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${EnvironmentStage}
+  ZonesTableName:
+    Description: DynamoDB Zones Table Name
+    Value: !Ref ZonesTable
+  RestartEventsTableName:
+    Description: DynamoDB Restart Events Table Name
+    Value: !Ref RestartEventsTable
+  EvidenceBucketName:
+    Description: S3 Evidence Bucket Name
+    Value: !Ref EvidenceBucket
