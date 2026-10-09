@@ -14,15 +14,19 @@ import {
   Calendar,
   Clock,
   ArrowRight,
+  RotateCcw,
+  PlusCircle,
 } from 'lucide-react';
-import { WaterZone, RestartEvent } from '@/types';
+import { WaterZone, RestartEvent, SupervisorDecision } from '@/types';
 import { DEMO_THRESHOLDS, ROLE_LABELS } from '@/lib/constants';
 import { StatusBadge } from '../ui/StatusBadge';
 
 interface SupervisorReviewProps {
   zones: WaterZone[];
   events: Record<string, RestartEvent>;
-  onDecisionSubmitted?: () => void;
+  onDecisionSubmitted?: (
+    decision: SupervisorDecision & { actionType?: 'APPROVE' | 'REJECT_HOLD' | 'REQUEST_MORE_VERIFICATION' }
+  ) => Promise<{ success: boolean; data?: RestartEvent; error?: string } | void>;
 }
 
 export function SupervisorReview({
@@ -30,7 +34,7 @@ export function SupervisorReview({
   events,
   onDecisionSubmitted,
 }: SupervisorReviewProps) {
-  // Find events awaiting approval or on hold
+  // Find events that can be reviewed
   const reviewableEvents = Object.values(events).filter(
     (e) => e.state === 'AWAITING_APPROVAL' || e.state === 'HOLD' || e.state === 'VERIFICATION_REQUIRED'
   );
@@ -55,7 +59,6 @@ export function SupervisorReview({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Gating Validation:
-  // Is this event eligible for restoration approval?
   const hasVerificationSubmission = !!currentEvent?.verificationSubmission;
   const chlorinePassing =
     (currentEvent?.verificationSubmission?.freeChlorineMgL || 0) >=
@@ -74,42 +77,49 @@ export function SupervisorReview({
     flushingPassing &&
     noMissingEvidence;
 
-  const handleDecision = async (decision: 'APPROVE' | 'HOLD') => {
-    if (!currentEvent) return;
+  const handleDecision = async (actionType: 'APPROVE' | 'REJECT_HOLD' | 'REQUEST_MORE_VERIFICATION') => {
+    if (!currentEvent || !onDecisionSubmitted) return;
     setIsSubmitting(true);
     setFeedback(null);
 
-    try {
-      const res = await fetch(`/api/restart-events/${currentEvent.id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          supervisorName,
-          supervisorRole,
-          decision,
-          rationale,
-          complianceChecksVerified: complianceChecked,
-        }),
-      });
+    const decision: SupervisorDecision & { actionType?: 'APPROVE' | 'REJECT_HOLD' | 'REQUEST_MORE_VERIFICATION' } = {
+      eventId: currentEvent.id,
+      supervisorName,
+      supervisorRole,
+      decision: actionType === 'APPROVE' ? 'APPROVE' : 'HOLD',
+      rationale:
+        rationale ||
+        (actionType === 'APPROVE'
+          ? 'Field parameters verified. Statutory flushing and residual safety protocol documented.'
+          : actionType === 'REQUEST_MORE_VERIFICATION'
+          ? 'Supervisor ordered additional secondary microbiological sampling before release.'
+          : 'Service restoration rejected; operational HOLD enforced.'),
+      timestamp: new Date().toISOString(),
+      complianceChecksVerified: complianceChecked,
+      actionType,
+    };
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+    try {
+      const result = await onDecisionSubmitted(decision);
+      if (result && !result.success) {
         setFeedback({
           type: 'error',
-          message: data.error || 'Decision rejected by operational policy engine.',
+          message: result.error || 'Decision rejected by authorization policy engine.',
         });
       } else {
         setFeedback({
           type: 'success',
           message:
-            decision === 'APPROVE'
-              ? 'Zone service RESTORED! Recharge command logged and audit record committed.'
-              : 'Zone maintained on operational HOLD. Field directives updated.',
+            actionType === 'APPROVE'
+              ? 'Zone service RESTORED! Safe drinking water released to network.'
+              : actionType === 'REQUEST_MORE_VERIFICATION'
+              ? 'Additional field verification directive issued. Event returned to VERIFICATION_REQUIRED.'
+              : 'Zone maintained on operational HOLD. Field remediation required.',
         });
-        if (onDecisionSubmitted) onDecisionSubmitted();
       }
-    } catch {
-      setFeedback({ type: 'error', message: 'Failed to communicate with authorization server.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Action failed';
+      setFeedback({ type: 'error', message: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -120,15 +130,15 @@ export function SupervisorReview({
       {/* Header */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
         <div className="flex items-center space-x-3 mb-2">
-          <div className="p-2 rounded bg-purple-950 text-purple-300 border border-purple-800">
+          <div className="p-2.5 rounded-lg bg-purple-950 text-purple-300 border border-purple-800 shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base font-bold font-mono text-slate-100 uppercase tracking-wider">
-              Supervisor Verification & Authorization Gate
+              Supervisor Verification & Release Authorization Gate
             </h1>
             <p className="text-xs text-slate-400 font-mono">
-              Authorized sign-off required prior to releasing intermittently supplied drinking water
+              Statutory sign-off required prior to releasing intermittently supplied drinking water
             </p>
           </div>
         </div>
@@ -169,7 +179,7 @@ export function SupervisorReview({
 
       {currentEvent && currentZone ? (
         <div className="space-y-5">
-          {/* Evidence Completeness & Gate Status Banner */}
+          {/* Gate Status Banner */}
           <div
             className={`p-4 rounded-lg border font-mono text-xs flex items-start space-x-3 ${
               isEligibleForApproval
@@ -190,7 +200,7 @@ export function SupervisorReview({
               </span>
               <p className="text-xs opacity-90 leading-relaxed">
                 {isEligibleForApproval
-                  ? 'Field verification checklists, required chlorine thresholds, and main flushing have been completed. Authorized personnel may approve release.'
+                  ? 'Field verification checklists, required chlorine thresholds, and main flushing have been verified. Authorized personnel may approve release.'
                   : `This event cannot be restored because mandatory evidence requirements or state prerequisites are incomplete. State: ${currentEvent.state}. Missing evidence items: ${currentEvent.riskEvaluation.missingEvidence.join(', ') || 'Awaiting field submission'}.`}
               </p>
             </div>
@@ -297,12 +307,12 @@ export function SupervisorReview({
           <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 font-mono text-xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 border-b border-slate-800 pb-2 flex items-center space-x-2">
               <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span>Supervisor Authorization Action</span>
+              <span>Supervisor Authorization Actions</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-slate-400 mb-1 text-[11px]">
+                <label className="block text-slate-400 mb-1 text-[11px] font-semibold">
                   Authorized Operator Name:
                 </label>
                 <input
@@ -314,7 +324,7 @@ export function SupervisorReview({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 text-[11px]">
+                <label className="block text-slate-400 mb-1 text-[11px] font-semibold">
                   Authorization Role:
                 </label>
                 <select
@@ -331,8 +341,8 @@ export function SupervisorReview({
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1 text-[11px]">
-                Statutory Decision Rationale (Immutable Audit Log Entry):
+              <label className="block text-slate-400 mb-1 text-[11px] font-semibold">
+                Decision Rationale (Immutable Audit Log Entry):
               </label>
               <textarea
                 rows={2}
@@ -373,20 +383,30 @@ export function SupervisorReview({
                 type="button"
                 onClick={() => handleDecision('APPROVE')}
                 disabled={isSubmitting || !isEligibleForApproval || !complianceChecked}
-                className="w-full sm:w-2/3 py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-slate-950 font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center space-x-2 shadow-lg disabled:text-slate-500"
+                className="w-full sm:w-1/2 py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-slate-950 font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center space-x-2 shadow-lg disabled:text-slate-500"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Authorize Drinking Water Service Restoration</span>
+                <span>Authorize Service Restoration</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleDecision('HOLD')}
+                onClick={() => handleDecision('REQUEST_MORE_VERIFICATION')}
                 disabled={isSubmitting}
-                className="w-full sm:w-1/3 py-3 px-4 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center space-x-2"
+                className="w-full sm:w-1/4 py-3 px-4 rounded-lg bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center space-x-1.5"
               >
-                <AlertOctagon className="w-4 h-4" />
-                <span>Enforce Operational HOLD</span>
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Request More Checks</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDecision('REJECT_HOLD')}
+                disabled={isSubmitting}
+                className="w-full sm:w-1/4 py-3 px-4 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 font-bold uppercase tracking-wider text-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <AlertOctagon className="w-3.5 h-3.5" />
+                <span>Enforce HOLD</span>
               </button>
             </div>
           </div>

@@ -1,37 +1,40 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { SupervisorReview } from '@/components/supervisor/SupervisorReview';
-import { store } from '@/lib/store';
-import { WaterZone, RestartEvent } from '@/types';
+import { useSimulationState } from '@/lib/useSimulationState';
 
 export default function SupervisorPage() {
-  const [zones, setZones] = useState<WaterZone[]>([]);
-  const [events, setEvents] = useState<Record<string, RestartEvent>>({});
-
-  const refresh = () => {
-    setZones([...store.getZones()]);
-    const eventMap: Record<string, RestartEvent> = {};
-    store.getRestartEvents().forEach((e) => {
-      eventMap[e.id] = e;
-    });
-    setEvents({ ...eventMap });
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
+  const {
+    zones,
+    restartEvents,
+    loading,
+    supervisorReview,
+    resetSimulation,
+    advanceSimulation,
+    triggerInterruption,
+  } = useSimulationState(3000);
 
   return (
     <div>
-      <Navigation />
+      <Navigation
+        onReset={resetSimulation}
+        onAdvance={() => advanceSimulation(1)}
+        onTriggerInterruption={() => triggerInterruption('zone-5')}
+      />
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <SupervisorReview
-          zones={zones}
-          events={events}
-          onDecisionSubmitted={refresh}
-        />
+        {loading ? (
+          <div className="p-16 text-center font-mono text-xs text-slate-500 animate-pulse">
+            Loading Supervisor Review Queue...
+          </div>
+        ) : (
+          <SupervisorReview
+            zones={zones}
+            events={restartEvents}
+            onDecisionSubmitted={supervisorReview}
+          />
+        )}
       </div>
     </div>
   );

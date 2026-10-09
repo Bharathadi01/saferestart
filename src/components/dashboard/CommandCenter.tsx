@@ -316,6 +316,16 @@ export function CommandCenter({
                             Assess Restart
                           </button>
                         )}
+                        {(zone.operationalState === 'NORMAL' || zone.operationalState === 'RESTORED') && (
+                          <button
+                            onClick={() => onTriggerInterruption?.(zone.id)}
+                            className="px-2.5 py-1 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs transition-colors font-medium flex items-center space-x-1"
+                            title="Simulate pressure loss / supply isolation"
+                          >
+                            <Zap className="w-3 h-3" />
+                            <span>Cut Supply</span>
+                          </button>
+                        )}
                         <Link
                           href={`/zones/${zone.id}`}
                           className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs transition-colors flex items-center space-x-1"

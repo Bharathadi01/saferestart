@@ -1,25 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { AuditLogView } from '@/components/audit/AuditLogView';
-import { store } from '@/lib/store';
-import { AuditEvent, WaterZone } from '@/types';
+import { useSimulationState } from '@/lib/useSimulationState';
 
 export default function AuditPage() {
-  const [audits, setAudits] = useState<AuditEvent[]>([]);
-  const [zones, setZones] = useState<WaterZone[]>([]);
-
-  useEffect(() => {
-    setAudits(store.getAuditTrail());
-    setZones(store.getZones());
-  }, []);
+  const {
+    zones,
+    auditTrail,
+    loading,
+    resetSimulation,
+    advanceSimulation,
+    triggerInterruption,
+  } = useSimulationState(3000);
 
   return (
     <div>
-      <Navigation />
+      <Navigation
+        onReset={resetSimulation}
+        onAdvance={() => advanceSimulation(1)}
+        onTriggerInterruption={() => triggerInterruption('zone-5')}
+      />
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <AuditLogView audits={audits} zones={zones} />
+        {loading && auditTrail.length === 0 ? (
+          <div className="p-16 text-center font-mono text-xs text-slate-500 animate-pulse">
+            Loading Regulatory Audit Trail...
+          </div>
+        ) : (
+          <AuditLogView audits={auditTrail} zones={zones} />
+        )}
       </div>
     </div>
   );

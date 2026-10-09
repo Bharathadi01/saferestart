@@ -24,16 +24,16 @@ export interface TransitionResult {
   error?: string;
 }
 
-// Valid state machine transitions
+// Valid state machine transitions (DAG with controlled operational remediation branches)
 const ALLOWED_TRANSITIONS: Record<ZoneOperationalState, ZoneOperationalState[]> = {
   NORMAL: ['INTERRUPTED'],
   INTERRUPTED: ['RESTART_REQUESTED'],
   RESTART_REQUESTED: ['ASSESSMENT_REQUIRED', 'HOLD'],
   ASSESSMENT_REQUIRED: ['HOLD', 'MITIGATION_REQUIRED', 'VERIFICATION_REQUIRED'],
-  HOLD: ['MITIGATION_REQUIRED', 'VERIFICATION_REQUIRED', 'INTERRUPTED'],
+  HOLD: ['HOLD', 'MITIGATION_REQUIRED', 'VERIFICATION_REQUIRED', 'AWAITING_APPROVAL', 'INTERRUPTED'],
   MITIGATION_REQUIRED: ['VERIFICATION_REQUIRED', 'HOLD'],
   VERIFICATION_REQUIRED: ['AWAITING_APPROVAL', 'HOLD'],
-  AWAITING_APPROVAL: ['RESTORED', 'HOLD'],
+  AWAITING_APPROVAL: ['RESTORED', 'HOLD', 'VERIFICATION_REQUIRED'],
   RESTORED: ['NORMAL', 'INTERRUPTED'],
 };
 
@@ -56,9 +56,8 @@ export function validateTransition(
     };
   }
 
-  // 2. Specific guard: VERIFICATION_REQUIRED -> AWAITING_APPROVAL
-  if (currentState === 'VERIFICATION_REQUIRED' && targetState === 'AWAITING_APPROVAL') {
-    // Must have verification submission
+  // 2. Specific guard: transitioning to AWAITING_APPROVAL
+  if (targetState === 'AWAITING_APPROVAL') {
     const submission = verificationData || currentEvent.verificationSubmission;
     if (!submission) {
       return {
@@ -91,6 +90,15 @@ export function validateTransition(
       return {
         allowed: false,
         reason: `Field observed pressure (${submission.observedPressurePsi ?? 'null'} psi) is below minimum service threshold (${DEMO_THRESHOLDS.MIN_NORMAL_PRESSURE_PSI} psi).`,
+      };
+    }
+
+    // All active field tasks must be completed
+    const pendingTasks = currentEvent.fieldTasks.filter((t) => t.status !== 'COMPLETED');
+    if (pendingTasks.length > 0) {
+      return {
+        allowed: false,
+        reason: `Cannot transition to AWAITING_APPROVAL: ${pendingTasks.length} field task(s) are still pending (${pendingTasks.map((t) => t.title).join(', ')}).`,
       };
     }
   }

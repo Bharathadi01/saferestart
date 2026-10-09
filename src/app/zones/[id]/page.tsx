@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/ui/Navigation';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { NetworkGraph } from '@/components/zone/NetworkGraph';
 import { TelemetryCharts } from '@/components/zone/TelemetryCharts';
 import { RiskPanel } from '@/components/zone/RiskPanel';
-import { store } from '@/lib/store';
-import { WaterZone, RestartEvent, AuditEvent } from '@/types';
+import { useSimulationState } from '@/lib/useSimulationState';
 import {
   ArrowLeft,
   Activity,
@@ -20,6 +19,7 @@ import {
   ShieldCheck,
   Droplet,
   Info,
+  Zap,
 } from 'lucide-react';
 
 export default function ZoneDetailPage({
@@ -30,20 +30,33 @@ export default function ZoneDetailPage({
   const resolvedParams = use(params);
   const zoneId = resolvedParams.id;
 
-  const [zone, setZone] = useState<WaterZone | undefined>(undefined);
-  const [activeEvent, setActiveEvent] = useState<RestartEvent | undefined>(undefined);
-  const [audits, setAudits] = useState<AuditEvent[]>([]);
+  const {
+    zones,
+    restartEvents,
+    auditTrail,
+    loading,
+    resetSimulation,
+    advanceSimulation,
+    triggerInterruption,
+    requestRestart,
+  } = useSimulationState(3000);
 
-  useEffect(() => {
-    const currentZone = store.getZone(zoneId);
-    setZone(currentZone);
+  const zone = zones.find((z) => z.id === zoneId);
+  const activeEvent = zone?.activeRestartEventId
+    ? restartEvents[zone.activeRestartEventId]
+    : undefined;
+  const audits = auditTrail.filter((a) => a.zoneId === zoneId);
 
-    if (currentZone?.activeRestartEventId) {
-      setActiveEvent(store.getRestartEvent(currentZone.activeRestartEventId));
-    }
-
-    setAudits(store.getAuditTrail(zoneId));
-  }, [zoneId]);
+  if (loading && !zone) {
+    return (
+      <div>
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center font-mono text-xs text-slate-500 animate-pulse">
+          Loading Zone SCADA Telemetry & Graph Topology...
+        </div>
+      </div>
+    );
+  }
 
   if (!zone) {
     return (
@@ -58,7 +71,11 @@ export default function ZoneDetailPage({
 
   return (
     <div>
-      <Navigation />
+      <Navigation
+        onReset={resetSimulation}
+        onAdvance={() => advanceSimulation(1)}
+        onTriggerInterruption={() => triggerInterruption('zone-5')}
+      />
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Back Link & Header */}
@@ -85,12 +102,29 @@ export default function ZoneDetailPage({
 
           {/* Quick Actions */}
           <div className="flex items-center space-x-2">
+            {zone.operationalState === 'INTERRUPTED' && (
+              <button
+                onClick={() => requestRestart(zone.id)}
+                className="px-3 py-1.5 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-xs font-mono font-medium transition-colors"
+              >
+                Assess Restart
+              </button>
+            )}
+            {(zone.operationalState === 'NORMAL' || zone.operationalState === 'RESTORED') && (
+              <button
+                onClick={() => triggerInterruption(zone.id)}
+                className="px-3 py-1.5 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs font-mono font-medium transition-colors flex items-center space-x-1"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Simulate Supply Cut</span>
+              </button>
+            )}
             {activeEvent && (
               <Link
                 href={`/events/${activeEvent.id}`}
-                className="px-3 py-1.5 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800 text-xs font-mono font-medium transition-colors flex items-center space-x-1.5"
+                className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono font-medium transition-colors flex items-center space-x-1.5"
               >
-                <span>Active Event: {activeEvent.id}</span>
+                <span>Workflow: {activeEvent.id}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
@@ -150,14 +184,12 @@ export default function ZoneDetailPage({
 
         {/* Main Grid: Topology Graph & Risk Engine Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* React Flow Water Network Graph */}
           <NetworkGraph
             nodes={zone.nodes}
             pipes={zone.pipes}
             zoneName={zone.name}
           />
 
-          {/* Risk Engine Assessment Panel */}
           {activeEvent ? (
             <RiskPanel
               riskEvaluation={activeEvent.riskEvaluation}

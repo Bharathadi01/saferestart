@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/ui/Navigation';
 import { RestartEventDetail } from '@/components/restart/RestartEventDetail';
-import { store } from '@/lib/store';
-import { RestartEvent, WaterZone, AuditEvent } from '@/types';
+import { useSimulationState } from '@/lib/useSimulationState';
 import { ArrowLeft } from 'lucide-react';
 
 export default function EventDetailPage({
@@ -16,19 +15,30 @@ export default function EventDetailPage({
   const resolvedParams = use(params);
   const eventId = resolvedParams.id;
 
-  const [event, setEvent] = useState<RestartEvent | undefined>(undefined);
-  const [zone, setZone] = useState<WaterZone | undefined>(undefined);
-  const [audits, setAudits] = useState<AuditEvent[]>([]);
+  const {
+    zones,
+    restartEvents,
+    auditTrail,
+    loading,
+    resetSimulation,
+    advanceSimulation,
+    triggerInterruption,
+  } = useSimulationState(3000);
 
-  useEffect(() => {
-    const currentEvent = store.getRestartEvent(eventId);
-    setEvent(currentEvent);
+  const event = restartEvents[eventId];
+  const zone = event ? zones.find((z) => z.id === event.zoneId) : undefined;
+  const audits = auditTrail.filter((a) => a.eventId === eventId);
 
-    if (currentEvent) {
-      setZone(store.getZone(currentEvent.zoneId));
-      setAudits(store.getAuditTrail(currentEvent.zoneId, eventId));
-    }
-  }, [eventId]);
+  if (loading && !event) {
+    return (
+      <div>
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center font-mono text-xs text-slate-500 animate-pulse">
+          Loading Restart Event Lifecycle...
+        </div>
+      </div>
+    );
+  }
 
   if (!event || !zone) {
     return (
@@ -43,7 +53,11 @@ export default function EventDetailPage({
 
   return (
     <div>
-      <Navigation />
+      <Navigation
+        onReset={resetSimulation}
+        onAdvance={() => advanceSimulation(1)}
+        onTriggerInterruption={() => triggerInterruption('zone-5')}
+      />
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
         <Link

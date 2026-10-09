@@ -10,15 +10,26 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const actor = body.actor || 'Operator J. Vance';
 
-    const event = store.getRestartEvent(id);
-    if (!event) {
+    let zoneId = body.zoneId;
+
+    if (!zoneId) {
+      const event = store.getRestartEvent(id);
+      if (event) {
+        zoneId = event.zoneId;
+      } else {
+        const directZone = store.getZone(id);
+        if (directZone) zoneId = directZone.id;
+      }
+    }
+
+    if (!zoneId) {
       return NextResponse.json(
-        { success: false, error: `Event ${id} not found` },
+        { success: false, error: `Could not identify zone for event ${id}` },
         { status: 404 }
       );
     }
 
-    const result = store.requestRestart(event.zoneId, actor);
+    const result = store.requestRestart(zoneId, actor);
 
     return NextResponse.json({
       success: true,

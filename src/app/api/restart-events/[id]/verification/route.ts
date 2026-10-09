@@ -27,9 +27,11 @@ export async function POST(
     const result = store.submitVerification(submission);
 
     return NextResponse.json({
-      success: true,
+      success: result.success,
+      outcome: result.outcome,
       data: result.event,
       audit: result.audit,
+      reasons: result.reasons,
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Verification submission failed';
