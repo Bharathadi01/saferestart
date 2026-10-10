@@ -2,20 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #080c14;
-  --foreground: #f1f5f9;
+@layer base {
+  :root {
+    --background: #080c14;
+    --foreground: #f1f5f9;
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: #080c14;
+  }
+
+  body {
+    background-color: #080c14;
+    color: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  /* Prevent any unstyled browser blue/underlined links */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: none;
+  }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Custom scrollbars for clean technical aesthetic */
+/* Custom scrollbars for technical utility aesthetic */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

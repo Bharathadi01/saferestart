@@ -2,9 +2,13 @@
 module.exports = {
   darkMode: ["class"],
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  safelist: [
+    // Ensure all dynamic status badge, border, and background classes are always compiled
+    { pattern: /bg-(emerald|amber|rose|teal|cyan|purple|blue|slate)-(500|600|700|800|900|950)(\/(15|20|30|40|50|60|80))?/ },
+    { pattern: /text-(emerald|amber|rose|teal|cyan|purple|blue|slate)-(200|300|400|500)/ },
+    { pattern: /border-(emerald|amber|rose|teal|cyan|purple|blue|slate)-(500|600|700|800|900)(\/(30|40|60))?/ },
   ],
   theme: {
     extend: {
@@ -43,6 +47,7 @@ module.exports = {
         }
       },
       fontFamily: {
+        sans: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       }
     },

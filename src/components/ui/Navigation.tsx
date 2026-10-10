@@ -62,11 +62,11 @@ export function Navigation({
                 <span className="font-bold text-base tracking-tight text-slate-100 font-mono">
                   SafeRestart
                 </span>
-                <span className="text-[10px] uppercase font-mono px-1 py-0.2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
+                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-bold">
                   v1.0
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono leading-none">
+              <p className="text-[10px] text-slate-400 font-mono leading-none mt-0.5">
                 Intermittent Water Restart Support
               </p>
             </div>
@@ -83,8 +83,8 @@ export function Navigation({
                   href={item.href}
                   className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium font-mono transition-colors ${
                     isActive
-                      ? 'bg-slate-800 text-cyan-400 border border-slate-700'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      ? 'bg-slate-850 text-cyan-300 border border-cyan-600/50 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -108,10 +108,10 @@ export function Navigation({
             <button
               onClick={() => handleAction('interrupt', onTriggerInterruption)}
               disabled={actionLoading !== null || isSimulating}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800 text-xs font-mono transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-rose-950/70 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs font-mono font-semibold transition-colors disabled:opacity-50"
               title="Simulate network pressure drop and supply cut"
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5 text-rose-400" />
               <span className="hidden sm:inline">Simulate Cut</span>
             </button>
           )}
@@ -120,7 +120,7 @@ export function Navigation({
             <button
               onClick={() => handleAction('advance', onAdvance)}
               disabled={actionLoading !== null || isSimulating}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-850 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-mono font-semibold transition-colors disabled:opacity-50"
               title="Advance simulation clock by 1 hour"
             >
               <FastForward className="w-3.5 h-3.5 text-amber-400" />
@@ -132,7 +132,7 @@ export function Navigation({
             <button
               onClick={() => handleAction('reset', onReset)}
               disabled={actionLoading !== null || isSimulating}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-xs font-mono transition-colors disabled:opacity-50"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-xs font-mono transition-colors disabled:opacity-50"
               title="Reset to deterministic initial state"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -143,35 +143,51 @@ export function Navigation({
       </div>
 
       {/* 3-Minute Demo Quick Links Bar for Judges */}
-      <div className="border-t border-slate-900 bg-slate-950/80 px-4 py-1.5 hidden sm:flex items-center justify-between text-[11px] font-mono text-slate-400">
+      <div className="border-t border-slate-900 bg-slate-950/90 px-4 py-2 hidden sm:flex items-center justify-between text-[11px] font-mono text-slate-400">
         <div className="flex items-center space-x-2">
-          <span className="text-cyan-400 font-bold">3-Min Judge Demo:</span>
-          <span className="text-slate-500">1.</span>
+          <span className="text-cyan-400 font-bold uppercase tracking-wider text-[10px]">3-Min Walkthrough:</span>
+          
           <button
             onClick={() => onTriggerInterruption?.()}
-            className="text-rose-400 hover:text-rose-300 hover:underline"
+            className="px-2 py-0.5 rounded bg-rose-950/50 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 transition-colors"
           >
-            Simulate Cut
+            1. Cut Supply
           </button>
+          
           <ChevronRight className="w-3 h-3 text-slate-600" />
-          <span className="text-slate-500">2.</span>
-          <Link href="/#holds" className="text-amber-400 hover:text-amber-300 hover:underline">
-            Risk HOLD
+          
+          <Link
+            href="/#holds"
+            className="px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/80 text-amber-300 border border-amber-800/80 transition-colors"
+          >
+            2. Safe HOLD
           </Link>
+          
           <ChevronRight className="w-3 h-3 text-slate-600" />
-          <span className="text-slate-500">3.</span>
-          <Link href="/field" className="text-cyan-300 hover:text-cyan-200 hover:underline">
-            Field Checklist
+          
+          <Link
+            href="/field"
+            className="px-2 py-0.5 rounded bg-cyan-950/50 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/80 transition-colors"
+          >
+            3. Field Checks
           </Link>
+          
           <ChevronRight className="w-3 h-3 text-slate-600" />
-          <span className="text-slate-500">4.</span>
-          <Link href="/supervisor" className="text-purple-300 hover:text-purple-200 hover:underline">
-            Supervisor Gate
+          
+          <Link
+            href="/supervisor"
+            className="px-2 py-0.5 rounded bg-purple-950/50 hover:bg-purple-900/80 text-purple-300 border border-purple-800/80 transition-colors"
+          >
+            4. Supervisor Gate
           </Link>
+          
           <ChevronRight className="w-3 h-3 text-slate-600" />
-          <span className="text-slate-500">5.</span>
-          <Link href="/audit" className="text-emerald-300 hover:text-emerald-200 hover:underline">
-            Audit Trail
+          
+          <Link
+            href="/audit"
+            className="px-2 py-0.5 rounded bg-emerald-950/50 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-800/80 transition-colors"
+          >
+            5. Audit Trail
           </Link>
         </div>
 
