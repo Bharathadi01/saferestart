@@ -1,11 +1,11 @@
 // SafeRestart Demonstration Parameters, Constants & Safety Disclaimers
 
 export const SAFETY_DISCLAIMER = {
-  SHORT_BANNER: 'DEMO MODE — SIMULATED NETWORK DATA',
+  SHORT_BANNER: 'DEMO PROTOTYPE',
   FULL_DISCLAIMER:
     'SafeRestart is an operational decision-support prototype for research and evaluation. It does not certify drinking-water microbiological safety or replace statutory utility protocols. All telemetry, risk indicators, and thresholds are simulated demonstration parameters. Final service restoration requires physical testing, certified field validation, and authorized supervisor sign-off.',
   COMPLIANCE_NOTE:
-    'Thresholds configured in this demonstration (e.g., minimum chlorine residual >= 0.20 mg/L, minimum service pressure >= 20.0 psi) reflect common baseline engineering parameters for demonstration purposes and must be adapted to jurisdiction-specific drinking water regulations.',
+    'Demonstration thresholds (minimum free chlorine >= 0.20 mg/L, minimum service pressure >= 20.0 psi) represent baseline engineering parameters for evaluation and must be configured to jurisdictional standards.',
 };
 
 export const DEMO_THRESHOLDS = {
@@ -32,66 +32,66 @@ export const DEMO_THRESHOLDS = {
 };
 
 export const ROLE_LABELS = {
-  SYSTEM_SIMULATOR: 'System Simulator (Telemetry Engine)',
-  FIELD_TECHNICIAN: 'Certified Field Technician',
-  WATER_QUALITY_SPECIALIST: 'Water Quality Field Specialist',
-  SUPERVISOR: 'Distribution Operations Supervisor',
-  CHIEF_WATER_ENGINEER: 'Chief Water Works Engineer',
+  SYSTEM_SIMULATOR: 'Simulation Engine',
+  FIELD_TECHNICIAN: 'Field Technician',
+  WATER_QUALITY_SPECIALIST: 'Water Quality Specialist',
+  SUPERVISOR: 'Operations Supervisor',
+  CHIEF_WATER_ENGINEER: 'Chief Water Engineer',
 } as const;
 
 export const STATE_CONFIG = {
   NORMAL: {
-    label: 'Normal Supply',
-    color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    dot: 'bg-emerald-400',
+    label: 'Supply operating normally',
+    color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    dot: 'bg-emerald-600',
     description: 'Pressurized continuous supply within standard operational limits.',
   },
   INTERRUPTED: {
-    label: 'Interrupted Supply',
-    color: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    dot: 'bg-amber-400',
-    description: 'Supply suspended or depressurized. Vulnerability assessment pending.',
+    label: 'Water supply stopped',
+    color: 'bg-amber-50 text-amber-800 border-amber-200',
+    dot: 'bg-amber-600',
+    description: 'Supply suspended or depressurized. Safety checks required.',
   },
   RESTART_REQUESTED: {
-    label: 'Restart Requested',
-    color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
-    dot: 'bg-cyan-400',
-    description: 'Operator has flagged zone for restart. Risk engine evaluation in progress.',
+    label: 'Restart requested',
+    color: 'bg-blue-50 text-blue-800 border-blue-200',
+    dot: 'bg-blue-600',
+    description: 'Operator has requested restart. Evaluating safety indicators.',
   },
   ASSESSMENT_REQUIRED: {
-    label: 'Assessment Required',
-    color: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    dot: 'bg-blue-400',
+    label: 'Assessment needed',
+    color: 'bg-blue-50 text-blue-800 border-blue-200',
+    dot: 'bg-blue-600',
     description: 'Awaiting hydraulic data evaluation and vulnerability check.',
   },
   HOLD: {
-    label: 'RESTART HOLD',
-    color: 'bg-rose-500/15 text-rose-400 border-rose-500/40',
-    dot: 'bg-rose-500 animate-pulse',
+    label: 'Do not restart (HOLD)',
+    color: 'bg-rose-50 text-rose-800 border-rose-300 font-semibold',
+    dot: 'bg-rose-600',
     description: 'Restart halted due to identified risks or incomplete evidence.',
   },
   MITIGATION_REQUIRED: {
-    label: 'Mitigation Required',
-    color: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    dot: 'bg-orange-400',
+    label: 'Repairs required',
+    color: 'bg-orange-50 text-orange-800 border-orange-200',
+    dot: 'bg-orange-600',
     description: 'Physical field remediation required (e.g. leak isolation, main flushing).',
   },
   VERIFICATION_REQUIRED: {
-    label: 'Verification Required',
-    color: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-    dot: 'bg-amber-300',
-    description: 'Water quality sampling and field pressure verification needed.',
+    label: 'Check needed in field',
+    color: 'bg-amber-50 text-amber-800 border-amber-300 font-semibold',
+    dot: 'bg-amber-600',
+    description: 'Field line flushing and disinfectant residual check required.',
   },
   AWAITING_APPROVAL: {
-    label: 'Awaiting Supervisor Approval',
-    color: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
-    dot: 'bg-purple-300',
-    description: 'All field tasks complete. Awaiting authorized supervisor sign-off.',
+    label: 'Waiting for supervisor review',
+    color: 'bg-purple-50 text-purple-800 border-purple-200 font-semibold',
+    dot: 'bg-purple-600',
+    description: 'Field tasks completed. Awaiting authorized supervisor sign-off.',
   },
   RESTORED: {
-    label: 'Service Restored',
-    color: 'bg-teal-500/15 text-teal-300 border-teal-500/30',
-    dot: 'bg-teal-300',
+    label: 'Service restored',
+    color: 'bg-teal-50 text-teal-800 border-teal-200',
+    dot: 'bg-teal-600',
     description: 'Zone successfully recharged, verified, authorized, and returned to service.',
   },
 } as const;

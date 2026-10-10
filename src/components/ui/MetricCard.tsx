@@ -21,47 +21,47 @@ export function MetricCard({
   onClick,
 }: MetricCardProps) {
   const variantStyles = {
-    default: 'border-slate-800 bg-slate-900/80 text-slate-100',
-    danger: 'border-rose-900/50 bg-rose-950/20 text-rose-100 hover:border-rose-600/50',
-    warning: 'border-amber-900/50 bg-amber-950/20 text-amber-100 hover:border-amber-600/50',
-    success: 'border-emerald-900/50 bg-emerald-950/20 text-emerald-100 hover:border-emerald-600/50',
-    info: 'border-cyan-900/50 bg-cyan-950/20 text-cyan-100 hover:border-cyan-600/50',
+    default: 'border-slate-200 bg-white text-slate-900 shadow-sm',
+    danger: 'border-rose-200 bg-rose-50/50 text-slate-900 shadow-sm',
+    warning: 'border-amber-200 bg-amber-50/50 text-slate-900 shadow-sm',
+    success: 'border-emerald-200 bg-emerald-50/50 text-slate-900 shadow-sm',
+    info: 'border-sky-200 bg-sky-50/50 text-slate-900 shadow-sm',
   };
 
   const iconStyles = {
-    default: 'text-slate-400 bg-slate-800/80',
-    danger: 'text-rose-400 bg-rose-900/40',
-    warning: 'text-amber-400 bg-amber-900/40',
-    success: 'text-emerald-400 bg-emerald-900/40',
-    info: 'text-cyan-400 bg-cyan-900/40',
+    default: 'text-slate-600 bg-slate-100',
+    danger: 'text-rose-700 bg-rose-100',
+    warning: 'text-amber-700 bg-amber-100',
+    success: 'text-emerald-700 bg-emerald-100',
+    info: 'text-sky-700 bg-sky-100',
   };
 
   return (
     <div
       onClick={onClick}
-      className={`rounded-lg p-4 border transition-all duration-150 ${variantStyles[variant]} ${
-        onClick ? 'cursor-pointer hover:translate-y-[-1px] shadow-sm' : ''
+      className={`rounded-xl p-4 border transition-all duration-150 ${variantStyles[variant]} ${
+        onClick ? 'cursor-pointer hover:shadow-md' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">
+        <span className="text-xs font-medium text-slate-600 uppercase tracking-wider">
           {label}
         </span>
-        <div className={`p-1.5 rounded-md ${iconStyles[variant]}`}>
+        <div className={`p-1.5 rounded-lg ${iconStyles[variant]}`}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
 
       <div className="flex items-baseline space-x-2">
-        <span className="text-2xl font-bold font-mono tracking-tight">{value}</span>
+        <span className="text-2xl font-bold tracking-tight text-slate-900">{value}</span>
         {badge && (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
             {badge}
           </span>
         )}
       </div>
 
-      {subtext && <p className="mt-1 text-xs text-slate-400 truncate">{subtext}</p>}
+      {subtext && <p className="mt-1 text-xs text-slate-500 truncate">{subtext}</p>}
     </div>
   );
 }

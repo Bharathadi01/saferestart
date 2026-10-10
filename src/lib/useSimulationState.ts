@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { WaterZone, RestartEvent, AuditEvent, VerificationSubmission, SupervisorDecision } from '@/types';
+import { WaterZone, RestartEvent, AuditEvent, VerificationSubmission, SupervisorDecision, ConfirmedFieldReport } from '@/types';
 
 export interface SimulationStateData {
   zones: WaterZone[];
@@ -155,6 +155,24 @@ export function useSimulationState(pollIntervalMs = 3000) {
     }
   };
 
+  const commitFieldReport = async (
+    eventId: string,
+    report: Omit<ConfirmedFieldReport, 'id' | 'confirmedAt'>
+  ) => {
+    try {
+      const res = await fetch(`/api/restart-events/${eventId}/field-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+      await fetchState();
+      return await res.json();
+    } catch (err) {
+      console.error('Commit field report failed:', err);
+      throw err;
+    }
+  };
+
   return {
     ...data,
     loading,
@@ -167,5 +185,6 @@ export function useSimulationState(pollIntervalMs = 3000) {
     submitVerification,
     supervisorReview,
     updateFieldTask,
+    commitFieldReport,
   };
 }

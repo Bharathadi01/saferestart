@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   explainAssessmentWithCopilot,
   structureFieldReportWithCopilot,
+  generateIncidentBrief,
+  investigateIncidentCauses,
 } from '../src/lib/copilot';
 
 describe('SafeRestart Evidence Copilot (Dual Capabilities & Guardrails)', () => {
@@ -115,4 +117,102 @@ describe('SafeRestart Evidence Copilot (Dual Capabilities & Guardrails)', () => 
       expect(result.reportedEvent).toBe('Unspecified operational observation');
     });
   });
+
+  describe('Capability C: Incident Intelligence Briefing', () => {
+    it('generates grounded brief with verified facts and supervisor review focus in fallback mode', async () => {
+      const brief = await generateIncidentBrief({
+        eventId: 'EVT-2026-001',
+        zoneId: 'zone-1',
+        zoneName: 'Central Business District',
+        zoneCode: 'ZONE-CENTRAL',
+        interruptionDurationHours: 14.5,
+        minimumObservedPressurePsi: 6.2,
+        currentTelemetry: {
+          timestamp: new Date().toISOString(),
+          pressurePsi: 8.5,
+          flowLps: 0.0,
+          chlorineMgL: undefined,
+          turbidityNtu: 0.4,
+          isStale: false,
+        },
+        riskEvaluation: {
+          score: 78,
+          level: 'HIGH',
+          action: 'HOLD',
+          requiresVerification: true,
+          contributors: [{ factor: 'unresolved_leak', severity: 'HIGH', explanation: 'Active fracture on P-104' }],
+          missingEvidence: ['free_chlorine_residual_measurement'],
+          calculatedAt: new Date().toISOString(),
+        },
+        incidents: [
+          {
+            id: 'INC-1',
+            zoneId: 'zone-1',
+            type: 'UNRESOLVED_LEAK',
+            severity: 'HIGH',
+            description: 'Active pipe fracture on main P-104',
+            reportedAt: new Date().toISOString(),
+            isResolved: false,
+          },
+        ],
+        fieldTasks: [
+          {
+            id: 'TSK-1',
+            zoneId: 'zone-1',
+            restartEventId: 'EVT-2026-001',
+            taskType: 'INSPECT_LEAK',
+            title: 'Verify repair sleeve on P-104',
+            description: 'Inspect sleeve',
+            status: 'PENDING',
+            assignedRole: 'FIELD_TECHNICIAN',
+          },
+        ],
+      });
+
+      expect(brief.incidentSummary).toContain('Central Business District');
+      expect(brief.verifiedObservations.length).toBeGreaterThan(0);
+      expect(brief.missingOrContradictoryEvidence.some((m) => m.toLowerCase().includes('chlorine'))).toBe(true);
+      expect(brief.supervisorReviewFocus.length).toBeGreaterThan(0);
+      expect(brief.sourceLabel).toContain('Amazon Bedrock was not called');
+      // Invariant: HOLD state must not recommend restoration
+      expect(brief.outstandingActions.some((a) => a.toLowerCase().includes('restore') && !a.toLowerCase().includes('do not'))).toBe(false);
+    });
+  });
+
+  describe('Capability D: Root-Cause Investigation Hypotheses', () => {
+    it('evaluates competing hypotheses with supporting and contradicting evidence', async () => {
+      const investigation = await investigateIncidentCauses({
+        eventId: 'EVT-2026-001',
+        zoneId: 'zone-1',
+        zoneName: 'Central Business District',
+        zoneCode: 'ZONE-CENTRAL',
+        interruptionDurationHours: 14.5,
+        minimumObservedPressurePsi: 6.2,
+        currentTelemetry: {
+          timestamp: new Date().toISOString(),
+          pressurePsi: 8.5,
+          flowLps: 0.0,
+          isStale: false,
+        },
+        incidents: [
+          {
+            id: 'INC-1',
+            zoneId: 'zone-1',
+            type: 'UNRESOLVED_LEAK',
+            severity: 'HIGH',
+            description: 'Active pipe fracture on main P-104',
+            reportedAt: new Date().toISOString(),
+            isResolved: false,
+          },
+        ],
+      });
+
+      expect(investigation.hypotheses.length).toBeGreaterThanOrEqual(2);
+      expect(investigation.hypotheses.some((h) => h.supportingEvidence.length > 0)).toBe(true);
+      expect(investigation.hypotheses.some((h) => h.contradictingEvidence.length > 0)).toBe(true);
+      expect(investigation.standardProcedures.length).toBeGreaterThan(0);
+      expect(investigation.sourceLabel).toContain('Amazon Bedrock was not called');
+    });
+  });
 });
+

@@ -245,4 +245,59 @@ describe('SafeRestart Phase 2 — 15 Mandatory Operational Test Scenarios', () =
     expect(store.getZone('zone-1')?.operationalState).toBe('HOLD');
     expect(store.getZone('zone-4')?.operationalState).toBe('AWAITING_APPROVAL');
   });
+
+  // 16. Confirmed field report commits into shared store and triggers deterministic recalculation
+  it('16. Confirmed field report commits into shared store and recalculates risk score deterministically', () => {
+    const { event: committed } = store.commitFieldReport('EVT-2026-001', {
+      eventId: 'EVT-2026-001',
+      rawReport: 'Zone 1 repaired fracture on P-104. Terminal tap chlorine is 0.45 mg/L. No leaks observed.',
+      reportedBy: 'Field Technician',
+      confirmedBy: 'Operator Rivera (Human Operator Gate)',
+      zoneReference: 'zone-1',
+      suspectedFault: {
+        description: 'Repaired clamp verified stable',
+        status: 'NONE',
+      },
+      explicitEvidence: {
+        freeChlorineMgL: 0.45,
+        pressurePsi: 32.0,
+        observations: ['No leaks observed', 'Main scouring completed'],
+      },
+      missingInformation: [],
+      suggestedFollowUpTasks: [],
+      sourceLabel: 'AI-assisted via Amazon Bedrock (Operator Confirmed)',
+    });
+
+    expect(committed.fieldReports?.length).toBeGreaterThan(0);
+    expect(committed.riskEvaluation).toBeDefined();
+    // Chlorine missing evidence should be resolved now that 0.45 mg/L was recorded
+    expect(committed.riskEvaluation.missingEvidence).not.toContain('free_chlorine_residual_measurement');
+    
+    // Audit entry committed
+    const latestAudit = store.getAuditTrail()[0];
+    expect(latestAudit.action).toBe('FIELD_REPORT_CONFIRMED');
+    expect(latestAudit.actor).toContain('Rivera');
+  });
+
+  // 17. Safety Invariant: AI copilot draft cannot mutate store or bypass supervisor sign-off
+  it('17. Safety Invariant: Raw AI draft cannot mutate store or bypass mandatory supervisor approval', () => {
+    const zone1 = store.getZone('zone-1')!;
+    const event = store.getRestartEvent(zone1.activeRestartEventId!)!;
+
+    expect(event.state).toBe('HOLD');
+    // An attempt to bypass supervisor review or directly approve without verification must throw
+    expect(() => {
+      store.supervisorReview({
+        eventId: event.id,
+        supervisorName: 'Malicious AI Override',
+        supervisorRole: 'SUPERVISOR',
+        decision: 'APPROVE',
+        rationale: 'Bypassing checks',
+        timestamp: new Date().toISOString(),
+        complianceChecksVerified: false,
+      });
+    }).toThrow(/Illegal state transition from HOLD to RESTORED/);
+
+    expect(event.state).toBe('HOLD');
+  });
 });

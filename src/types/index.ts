@@ -132,6 +132,56 @@ export interface SupervisorDecision {
   complianceChecksVerified: boolean;
 }
 
+export interface ConfirmedFieldReport {
+  id: string;
+  eventId: string;
+  rawReport: string;
+  reportedBy: string;
+  confirmedBy: string;
+  confirmedAt: string;
+  zoneReference: string;
+  suspectedFault: {
+    description: string;
+    status: 'SUSPECTED' | 'CONFIRMED' | 'NONE';
+    location?: string;
+  };
+  explicitEvidence: {
+    freeChlorineMgL: number | null;
+    pressurePsi: number | null;
+    observations: string[];
+  };
+  missingInformation: string[];
+  suggestedFollowUpTasks: string[];
+  sourceLabel: string;
+}
+
+export interface InvestigationHypothesis {
+  id: string;
+  title: string;
+  likelihood: 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  supportingEvidence: string[];
+  contradictingEvidence: string[];
+  missingInformation: string[];
+  suggestedVerificationSteps: string[];
+  limitations: string;
+}
+
+export interface IncidentIntelligenceBrief {
+  incidentSummary: string;
+  timeline: string;
+  verifiedObservations: string[];
+  suspectedUnconfirmedCauses: string[];
+  supportingEvidenceMap: Record<string, string>;
+  missingOrContradictoryEvidence: string[];
+  investigationNeeds: string[];
+  outstandingActions: string[];
+  supervisorReviewFocus: string[];
+  sourceLabel: string;
+  modelUsed: string;
+  generatedAt: string;
+}
+
 export interface RestartEvent {
   id: string;
   zoneId: string;
@@ -145,6 +195,7 @@ export interface RestartEvent {
   restartRequestedAt?: string;
   riskEvaluation: RiskEvaluation;
   fieldTasks: FieldTask[];
+  fieldReports?: ConfirmedFieldReport[];
   verificationSubmission?: VerificationSubmission;
   supervisorDecision?: SupervisorDecision;
   auditTrailIds: string[];

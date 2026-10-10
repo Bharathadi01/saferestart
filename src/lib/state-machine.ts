@@ -142,7 +142,7 @@ export function validateTransition(
 }
 
 /**
- * Executes state transition, updates event timestamps, and generates tamper-resistant audit entry.
+ * Executes state transition, updates event timestamps, and generates structured audit entry.
  */
 export function transitionRestartEvent(
   currentEvent: RestartEvent,

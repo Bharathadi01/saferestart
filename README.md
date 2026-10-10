@@ -44,7 +44,7 @@ Depressurization triggers severe physical and environmental hazards:
 3. **Disinfectant Decay**: In stagnant distribution mains, free chlorine residual decays rapidly due to organic matter oxidation, eliminating the protective disinfectant barrier.
 4. **Operational Blind Spots & Fragmented Communication**: Traditional SCADA systems display telemetry alarms but fail to guide field crews. SCADA operators, field technicians flushing hydrants, and municipal supervisors authorizing release communicate via disconnected phone calls, paper clipboards, and memory. Restorations often occur without verified flushing or certified chlorine residuals.
 
-SafeRestart does not claim to invent water sensors, hydraulic transient models, or lab testing. **SafeRestart solves the operational workflow gap**: bridging SCADA telemetry, physical field validation, and accountable supervisor authorization into a single, tamper-evident system.
+SafeRestart does not claim to invent water sensors, hydraulic transient models, or lab testing. **SafeRestart solves the operational workflow gap**: bridging SCADA telemetry, physical field validation, and accountable supervisor authorization into a single, transparent audit-logged workflow.
 
 ---
 
@@ -78,7 +78,7 @@ SafeRestart answers the **6 essential operational questions** every water utilit
 | **Field Technician Checklist** | **Implemented** | Mobile-optimized interface for field workers to record DPD chlorine, digital pressure, scouring flush duration, and photo verification. |
 | **Supervisor Authorization Gate** | **Implemented** | Hard-locked sign-off barrier requiring satisfied field evidence, non-empty sign-off comments, and supervisor attribution. |
 | **Regulatory Audit Ledger** | **Implemented** | Complete event trail tracking actor identity, previous state, new state, timestamp, and one-click CSV export. |
-| **Bedrock AI Advisory Synthesis** | **Implemented** | Amazon Bedrock (`anthropic.claude-3-sonnet`) integration with deterministic offline heuristics fallback for natural-language explanations. |
+| **Bedrock AI Advisory Synthesis** | **Implemented** | Amazon Bedrock (`amazon.nova-micro-v1:0` in `ap-southeast-2`) integration with deterministic offline heuristics fallback for natural-language explanations and field note structuring. |
 | **Decoupled Persistence Architecture** | **Implemented** | Clean `ISafeRestartAdapter` interface with fully operational `LocalSafeRestartAdapter` (zero-credential local dev) and AWS DynamoDB data adapter. |
 | **Infrastructure-as-Code (IaC)** | **Implemented** | Production-ready AWS SAM specification ([`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml)) defining API Gateway, Lambda, DynamoDB, S3, and EventBridge. |
 | *EPANET 2.2 Hydraulic Engine WASM* | *Planned* | Compiling the EPA EPANET hydraulic solver to WebAssembly for client-side water-age and hydraulic transient calculation. |
@@ -199,7 +199,7 @@ flowchart TD
         DDB["Amazon DynamoDB\n(Single-Table Design)"]
         S3["Amazon S3\n(Encrypted Evidence Storage)"]
         EB["Amazon EventBridge\n(Domain Event Bus)"]
-        BEDROCK["Amazon Bedrock\n(Claude 3 Sonnet Advisory)"]
+        BEDROCK["Amazon Bedrock\n(Nova Micro v1 Advisory)"]
     end
 
     UI --> Core
@@ -242,7 +242,7 @@ Detailed architectural specifications, data schemas, and mathematical heuristics
 | **Framework** | Next.js (App Router) | 15.2.1 | Unified full-stack framework for server-rendered UI and REST API routes. |
 | **Language** | TypeScript | 5.8+ | Strict type safety with zero runtime surprises; strict mode enabled. |
 | **UI Library** | React | 19.0.0 | Component rendering, hooks, and responsive state synchronization. |
-| **Styling** | Tailwind CSS | 3.4.17 | High-density operational dark navy theme (`slate-900`/`slate-950`). |
+| **Styling** | Tailwind CSS | 3.4.17 | Accessible light civic public-works system (`slate-50`, `#f8fafc`). |
 | **Network Topology** | React Flow (`@xyflow/react`) | 12.4.4 | Interactive hydraulic schematic displaying reservoirs, pipes, valves, and junctions. |
 | **Hydraulic Charts** | Recharts | 2.15.1 | Responsive time-series charts rendering pressure curves and chlorine depletion. |
 | **Icons** | Lucide React | 0.477.0 | Consistent iconography for hydraulic assets, status badges, and warnings. |
@@ -251,7 +251,7 @@ Detailed architectural specifications, data schemas, and mathematical heuristics
 | **Database (Production)** | Amazon DynamoDB | Cloud Target | Serverless single-table persistence with pay-per-request billing. |
 | **Event Bus (Production)**| Amazon EventBridge | Cloud Target | Asynchronous decoupling for interruption events and audit logging. |
 | **Object Store (Production)**| Amazon S3 | Cloud Target | Server-side encrypted storage for field verification photo evidence. |
-| **Generative AI** | Amazon Bedrock | Cloud Target | Operator advisory summaries via `anthropic.claude-3-sonnet`. |
+| **Generative AI** | Amazon Bedrock | Cloud Target | Operator advisory summaries & note structuring via `amazon.nova-micro-v1:0` (`ap-southeast-2`). |
 
 ---
 
@@ -300,10 +300,13 @@ All environment variables have safe fallback defaults for local execution. See [
 # Node Environment
 NODE_ENV=development
 
-# AWS Region (Optional for local development mode)
-AWS_REGION=us-east-1
+# AWS Region (Defaults to ap-southeast-2 Sydney, matching verified Bedrock playground)
+AWS_REGION=ap-southeast-2
 
-# AWS Credentials (Leave empty to use local deterministic simulator mode)
+# AWS Authentication (Option 1: Short-term Bedrock API Key bearer token - Recommended for Hackathon)
+# AWS_BEARER_TOKEN_BEDROCK=ey...
+
+# AWS Authentication (Option 2: Standard IAM Credentials)
 # AWS_ACCESS_KEY_ID=
 # AWS_SECRET_ACCESS_KEY=
 # AWS_SESSION_TOKEN=
@@ -319,8 +322,8 @@ AWS_REGION=us-east-1
 # Amazon EventBridge Custom Event Bus
 # EVENT_BUS_NAME=saferestart-bus-dev
 
-# Amazon Bedrock Model Configuration
-BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
+# Amazon Bedrock Model Configuration (Defaults to amazon.nova-micro-v1:0)
+BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
 ```
 
 When AWS credentials are omitted, SafeRestart automatically routes data through `LocalSafeRestartAdapter`, maintaining complete statefulness in memory without cloud dependencies or billing.
@@ -329,7 +332,7 @@ When AWS credentials are omitted, SafeRestart automatically routes data through 
 
 ## 10. Testing, Quality & Build Verification
 
-SafeRestart adheres to strict engineering quality standards. Four verification commands are available:
+SafeRestart adheres to strict engineering quality standards. Five verification commands are available:
 
 ```bash
 # 1. Run ESLint (must pass with 0 warnings and 0 errors)
@@ -338,10 +341,13 @@ npm run lint
 # 2. Strict TypeScript type check (noEmit)
 npm run typecheck
 
-# 3. Unit and integration tests with Vitest (30/30 passing)
+# 3. Unit and integration tests with Vitest (49/49 passing across 6 suites)
 npm test
 
-# 4. Production Next.js build compilation
+# 4. Standalone live AWS Bedrock integration diagnostic
+npm run verify:aws
+
+# 5. Production Next.js build compilation
 npm run build
 ```
 
@@ -351,6 +357,7 @@ npm run build
 - `tests/unit/state-machine.test.ts`: Enforces state transition invariants, preventing restarts without prior field verification or unassigned supervisor sign-offs.
 - `tests/unit/adapters.test.ts`: Validates persistence contract adherence between local in-memory stores and cloud interfaces.
 - `tests/integration/simulation-workflow.test.ts`: Executes the complete end-to-end lifecycle from interruption to restoration across multiple synthetic zones.
+- `tests/aws-integration.test.ts`: 12 comprehensive integration and safety invariant tests verifying Bedrock SDK bearer-token auth (`httpBearerAuth`), Converse API payload formatting for `amazon.nova-micro-v1:0`, graceful deterministic offline fallback, and strict guarantees that AI never overrides deterministic safety engine HOLD decisions.
 
 For detailed testing documentation, see [`docs/TESTING.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/TESTING.md).
 
@@ -397,7 +404,7 @@ SafeRestart is architected following cloud-native, serverless AWS best practices
 | **Amazon DynamoDB** | Single-table persistence for zones, restart events, and immutable audit logs | **Active in Local Adapter** / **IaC Specified** | [`src/lib/adapters/`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/adapters/), [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
 | **Amazon S3** | Encrypted object storage for field verification photo evidence | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
 | **Amazon EventBridge** | Custom domain event bus for asynchronous interruption orchestration | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **Amazon Bedrock** | GenAI advisory synthesis powered by `anthropic.claude-3-sonnet` | **Implemented** (SDK Route with deterministic offline fallback) | [`src/app/api/bedrock-explain/route.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock-explain/route.ts) |
+| **Amazon Bedrock** | GenAI advisory synthesis & note structuring powered by `amazon.nova-micro-v1:0` (`ap-southeast-2`) | **Implemented** (SDK Route with deterministic offline fallback and live verification) | [`src/lib/aws-client.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/aws-client.ts), [`src/app/api/bedrock/explain/route.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock/explain/route.ts) |
 | **AWS IAM** | Least-privilege role policies for execution boundaries | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
 
 ### Deploying to AWS via SAM
@@ -449,8 +456,8 @@ See [`docs/KNOWN_LIMITATIONS.md`](file:///Users/bharathadithya/.gemini/antigravi
 In compliance with hackathon transparency guidelines:
 
 1. **AI Development Assistance**: AI coding assistants (including Anthropic Claude models and Google Antigravity) were utilized as pair-programming tools during development for drafting TypeScript interfaces, writing Vitest test cases, crafting Tailwind styling, and authoring technical documentation. All generated code and documentation were manually reviewed, edited, and validated by the maintainer.
-2. **Application-Level AI (Amazon Bedrock)**: SafeRestart integrates Amazon Bedrock (`anthropic.claude-3-sonnet`) through [`src/app/api/bedrock-explain/route.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock-explain/route.ts). Bedrock's role is strictly limited to **synthesizing natural-language operator briefings and summarizing missing field tasks**.
-3. **Deterministic Authority Boundary**: **The LLM never makes authoritative safety or restoration decisions.** All risk scoring, threshold evaluations, and state machine transitions are executed exclusively by deterministic TypeScript algorithms. If Bedrock is unreachable or credentials are not supplied, the system seamlessly falls back to local deterministic engineering heuristics without degradation.
+2. **Application-Level AI (Amazon Bedrock)**: SafeRestart integrates Amazon Bedrock (`amazon.nova-micro-v1:0` in `ap-southeast-2`) through [`/api/bedrock/explain`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock/explain/route.ts) and [`/api/copilot/structure-report`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/copilot/structure-report/route.ts). Bedrock's role is strictly limited to **synthesizing natural-language operator briefings and extracting structured parameters from informal field briefings**.
+3. **Deterministic Authority Boundary**: **The LLM never makes authoritative safety or restoration decisions.** All risk scoring, threshold evaluations, and state machine transitions are executed exclusively by deterministic TypeScript algorithms. If Bedrock is unreachable or credentials are not supplied, the system seamlessly falls back to local deterministic engineering heuristics without degradation. Every AI response is transparently labelled with its origin (`source: 'BEDROCK_LIVE'` or `'LOCAL_FALLBACK'`).
 
 ---
 

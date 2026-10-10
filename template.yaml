@@ -16,7 +16,7 @@ Globals:
         AUDIT_TRAIL_TABLE: !Ref AuditTrailTable
         EVIDENCE_BUCKET: !Ref EvidenceBucket
         EVENT_BUS_NAME: !Ref SafeRestartEventBus
-        BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0'
+        BEDROCK_MODEL_ID: 'amazon.nova-micro-v1:0'
         POWERTOOLS_SERVICE_NAME: SafeRestartService
         POWERTOOLS_METRICS_NAMESPACE: SafeRestart
 

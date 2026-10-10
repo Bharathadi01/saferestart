@@ -30,16 +30,30 @@ const SAMPLE_REPORTS = [
   },
 ];
 
-export function FieldReportCopilot() {
+interface FieldReportCopilotProps {
+  activeEventId?: string;
+  activeZoneId?: string;
+  onReportCommitted?: (data: any) => void;
+}
+
+export function FieldReportCopilot({
+  activeEventId,
+  activeZoneId,
+  onReportCommitted,
+}: FieldReportCopilotProps = {}) {
   const [inputText, setInputText] = useState(SAMPLE_REPORTS[0].text);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CopilotStructuredReportOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [targetEventId, setTargetEventId] = useState(activeEventId || 'EVT-2026-001');
+  const [committing, setCommitting] = useState(false);
+  const [commitSuccess, setCommitSuccess] = useState(false);
 
   const handleStructureReport = async () => {
     if (!inputText.trim()) return;
     setLoading(true);
     setError(null);
+    setCommitSuccess(false);
 
     try {
       const res = await fetch('/api/copilot/structure-report', {
@@ -51,6 +65,11 @@ export function FieldReportCopilot() {
       const json = await res.json();
       if (json.success && json.data) {
         setResult(json.data);
+        if (json.data.zoneReference === 'zone-1' && !activeEventId) {
+          setTargetEventId('EVT-2026-001');
+        } else if (json.data.zoneReference === 'zone-2' && !activeEventId) {
+          setTargetEventId('EVT-2026-002');
+        }
       } else {
         setError(json.error || 'Failed to extract structured representation.');
       }
@@ -59,6 +78,45 @@ export function FieldReportCopilot() {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCommitReport = async () => {
+    if (!result || !targetEventId.trim()) return;
+    setCommitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/restart-events/${targetEventId}/field-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawReport: inputText,
+          reportedBy: 'Field Technician',
+          confirmedBy: 'Operator (Confirmed via SafeRestart)',
+          zoneReference: result.zoneReference || activeZoneId || 'zone-1',
+          suspectedFault: result.suspectedFault,
+          explicitEvidence: result.explicitEvidence,
+          missingInformation: result.missingInformation,
+          suggestedFollowUpTasks: result.suggestedFollowUpTasks,
+          sourceLabel: result.sourceLabel,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setCommitSuccess(true);
+        if (onReportCommitted) {
+          onReportCommitted(json.data);
+        }
+      } else {
+        setError(json.error || 'Failed to commit report to event.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error committing report';
+      setError(msg);
+    } finally {
+      setCommitting(false);
     }
   };
 
@@ -266,6 +324,71 @@ export function FieldReportCopilot() {
               </ul>
             </div>
           )}
+
+          {/* HUMAN OPERATOR CONFIRMATION & COMMIT GATE */}
+          <div className="p-4 rounded-lg bg-slate-950 border border-emerald-800/80 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-slate-100 text-xs uppercase tracking-wider">
+                  Human Operator Confirmation Gate
+                </span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                Mandatory Safety Protocol
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Verify the extracted observations against your physical inspection. AI extraction does <strong>not</strong> alter network state or satisfy field checklists until an authorized human confirms and commits the record.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-800">
+              <div className="flex items-center space-x-2">
+                <label className="text-[11px] text-slate-400">Target Event:</label>
+                <input
+                  type="text"
+                  value={targetEventId}
+                  onChange={(e) => setTargetEventId(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                  placeholder="EVT-2026-001"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCommitReport}
+                disabled={committing || commitSuccess}
+                className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 shadow-sm"
+              >
+                {committing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Committing Evidence...</span>
+                  </>
+                ) : commitSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    <span>✓ Committed & Recalculated</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    <span>Confirm & Commit to Incident Record</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {commitSuccess && (
+              <div className="p-2.5 rounded bg-emerald-950/80 border border-emerald-700 text-emerald-200 text-[11px] flex items-center space-x-2 animate-in fade-in duration-150">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>
+                  Observation committed to <strong>{targetEventId}</strong>. Deterministic safety engine has recalculated risk score and logged an immutable audit entry.
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Safety Disclaimer Banner */}
           <div className="p-2.5 rounded bg-slate-900 border border-amber-900/40 flex items-start space-x-2 text-[10px] text-slate-400">

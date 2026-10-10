@@ -14,18 +14,23 @@ export interface CloudStorageStatus {
 }
 
 export function getCloudEnvironmentStatus(): CloudStorageStatus {
+  const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK || process.env.BEDROCK_API_KEY;
+  const hasBearerToken = !!bearerToken && bearerToken.trim().length > 0;
   const hasAwsRegion = !!process.env.AWS_REGION || !!process.env.AWS_DEFAULT_REGION;
   const hasAwsCreds = !!process.env.AWS_ACCESS_KEY_ID && !!process.env.AWS_SECRET_ACCESS_KEY;
-  const isAwsConfigured = hasAwsRegion && hasAwsCreds;
+  const isAwsConfigured = hasBearerToken || (hasAwsRegion && hasAwsCreds);
+  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'ap-southeast-2';
 
   return {
     provider: isAwsConfigured ? 'AWS_SERVERLESS' : 'LOCAL_SIMULATOR',
-    region: process.env.AWS_REGION || 'us-east-1',
-    tablesConfigured: isAwsConfigured,
-    eventBridgeConfigured: isAwsConfigured,
-    bedrockConfigured: isAwsConfigured && !!process.env.BEDROCK_MODEL_ID,
-    notice: isAwsConfigured
-      ? 'Connected to AWS Serverless (DynamoDB + EventBridge + Bedrock)'
+    region,
+    tablesConfigured: hasAwsCreds,
+    eventBridgeConfigured: hasAwsCreds,
+    bedrockConfigured: hasBearerToken || (hasAwsCreds && !!process.env.BEDROCK_MODEL_ID),
+    notice: hasBearerToken
+      ? `Connected to Amazon Bedrock API Key Runtime (${region})`
+      : isAwsConfigured
+      ? `Connected to AWS Serverless (DynamoDB + EventBridge + Bedrock: ${region})`
       : 'Running Local Development Adapter. Data persisted in memory with deterministic simulation.',
   };
 }
@@ -67,3 +72,10 @@ export async function explainDecisionWithBedrock(params: {
     sourceLabel: result.sourceLabel,
   };
 }
+
+export {
+  generateIncidentBrief,
+  investigateIncidentCauses,
+  structureFieldReportWithCopilot,
+} from './copilot';
+

@@ -25,7 +25,7 @@ export default function SupervisorPage() {
       />
       <div className="max-w-7xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="p-16 text-center font-mono text-xs text-slate-500 animate-pulse">
+          <div className="p-16 text-center text-sm text-slate-500 animate-pulse">
             Loading Supervisor Review Queue...
           </div>
         ) : (

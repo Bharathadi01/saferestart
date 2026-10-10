@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { History, Search, Filter, ShieldCheck, Clock, Download } from 'lucide-react';
+import { History, Search, Download, ShieldCheck, User } from 'lucide-react';
 import { AuditEvent, WaterZone } from '@/types';
 import { StatusBadge } from '../ui/StatusBadge';
 
@@ -25,7 +25,18 @@ export function AuditLogView({ audits, zones }: AuditLogViewProps) {
   });
 
   const exportCsv = () => {
-    const headers = ['ID', 'Timestamp', 'EventID', 'ZoneID', 'Actor', 'Role', 'Action', 'PreviousState', 'NewState', 'Reason'];
+    const headers = [
+      'ID',
+      'Timestamp',
+      'EventID',
+      'ZoneID',
+      'Actor',
+      'Role',
+      'Action',
+      'PreviousState',
+      'NewState',
+      'Reason',
+    ];
     const rows = filteredAudits.map((a) => [
       a.id,
       a.timestamp,
@@ -47,54 +58,71 @@ export function AuditLogView({ audits, zones }: AuditLogViewProps) {
     link.click();
   };
 
+  const formatRole = (role: string) => {
+    switch (role) {
+      case 'SUPERVISOR':
+      case 'CHIEF_WATER_ENGINEER':
+        return 'Supervisor';
+      case 'FIELD_TECHNICIAN':
+        return 'Field Technician';
+      case 'WATER_QUALITY_SPECIALIST':
+        return 'Water Quality Specialist';
+      case 'SYSTEM_SIMULATOR':
+        return 'System Automated';
+      default:
+        return role;
+    }
+  };
+
   return (
-    <div className="space-y-5 font-mono text-xs">
-      {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+    <div className="space-y-6">
+      {/* Civic Header Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">
-              <History className="w-5 h-5" />
+          <div className="flex items-start sm:items-center space-x-3">
+            <div className="p-2.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-100 mt-0.5 sm:mt-0">
+              <History className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-slate-100 uppercase tracking-wider">
-                Immutable Regulatory Audit Trail
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Safety Audit Trail
               </h1>
-              <p className="text-xs text-slate-400">
-                Cryptographically sequenced lifecycle transitions, supervisor authorizations, and field verifications
+              <p className="text-sm text-slate-600 mt-0.5">
+                Permanent log of all status transitions, field verifications, and supervisor authorizations.
               </p>
             </div>
           </div>
 
           <button
             onClick={exportCsv}
-            className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium transition-colors flex items-center space-x-1.5 text-xs"
+            type="button"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Audit CSV</span>
+            <Download className="w-4 h-4 text-slate-500" />
+            <span>Export Audit Log (CSV)</span>
           </button>
         </div>
 
-        {/* Filter Bar */}
-        <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row gap-3">
+        {/* Search & Filter Controls */}
+        <div className="mt-5 pt-5 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search by actor, reason, event ID, or action..."
+              placeholder="Search by name, action, reason, or event ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-md pl-9 pr-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-600 focus:bg-white focus:ring-1 focus:ring-sky-600 transition"
             />
           </div>
 
-          <div className="sm:w-60">
+          <div className="sm:w-64">
             <select
               value={selectedZone}
               onChange={(e) => setSelectedZone(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-sky-600 focus:bg-white focus:ring-1 focus:ring-sky-600 transition"
             >
-              <option value="ALL">All Zones ({audits.length} entries)</option>
+              <option value="ALL">All Zones ({audits.length} events)</option>
               {zones.map((z) => (
                 <option key={z.id} value={z.id}>
                   {z.name} ({z.code})
@@ -103,70 +131,86 @@ export function AuditLogView({ audits, zones }: AuditLogViewProps) {
             </select>
           </div>
         </div>
+
+        <div className="mt-3 text-xs text-slate-500">
+          Showing {filteredAudits.length} of {audits.length} recorded events
+        </div>
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase text-[11px] tracking-wider">
-                <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4">Event & Zone</th>
-                <th className="py-3 px-4">Actor / Role</th>
-                <th className="py-3 px-4">Transition</th>
-                <th className="py-3 px-4">Reason & Physical Basis</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80">
-              {filteredAudits.map((a) => {
-                const z = zones.find((item) => item.id === a.zoneId);
-                return (
-                  <tr key={a.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 whitespace-nowrap text-slate-400">
-                      <div>{new Date(a.timestamp).toLocaleTimeString()}</div>
-                      <div className="text-[10px] text-slate-500">
-                        {new Date(a.timestamp).toISOString().slice(0, 10)}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-bold text-cyan-400">{a.eventId}</div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[150px]">
-                        {z?.name || a.zoneId}
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-semibold text-slate-200">{a.actor}</div>
-                      <span className="text-[10px] text-slate-400 px-1 py-0.2 rounded bg-slate-950 border border-slate-800">
-                        {a.actorRole}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-1.5">
-                        <StatusBadge state={a.previousState} size="sm" showDot={false} />
-                        <span className="text-slate-500">→</span>
-                        <StatusBadge state={a.newState} size="sm" showDot={false} />
-                      </div>
-                      <div className="text-[10px] text-slate-500 mt-1">{a.action}</div>
-                    </td>
-
-                    <td className="py-3 px-4 text-slate-300">
-                      <p className="leading-snug max-w-md">{a.decisionReason}</p>
-                      {a.evidenceReference && (
-                        <div className="text-[10px] text-cyan-400 mt-1">
-                          Evidence Reference: {a.evidenceReference}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        {filteredAudits.length === 0 ? (
+          <div className="p-12 text-center text-slate-500">
+            <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <p className="font-medium text-slate-700">No audit records match your search</p>
+            <p className="text-xs text-slate-500 mt-1">Try clearing your search term or zone filter.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-[11px] uppercase tracking-wider">
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">Zone & Event</th>
+                  <th className="py-3 px-4">Actor & Role</th>
+                  <th className="py-3 px-4">Status Transition</th>
+                  <th className="py-3 px-4">Reason & Safety Rule</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredAudits.map((a) => {
+                  const z = zones.find((item) => item.id === a.zoneId);
+                  const date = new Date(a.timestamp);
+                  return (
+                    <tr key={a.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600">
+                        <div className="font-medium text-slate-900">{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                        <div className="text-[11px] text-slate-500">
+                          {date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-slate-900">{z?.name || a.zoneId}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          {a.eventId}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-medium text-slate-900 flex items-center space-x-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{a.actor}</span>
+                        </div>
+                        <span className="inline-block mt-0.5 text-[10px] text-slate-600 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
+                          {formatRole(a.actorRole)}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-1.5">
+                          <StatusBadge state={a.previousState} size="sm" showDot={false} />
+                          <span className="text-slate-400 font-bold">→</span>
+                          <StatusBadge state={a.newState} size="sm" showDot={false} />
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1">{a.action}</div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-700">
+                        <p className="leading-relaxed max-w-md text-xs">{a.decisionReason}</p>
+                        {a.evidenceReference && (
+                          <div className="text-[11px] text-sky-700 mt-1 font-mono">
+                            Evidence ID: {a.evidenceReference}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

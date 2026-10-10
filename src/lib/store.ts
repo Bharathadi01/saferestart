@@ -8,6 +8,8 @@ import {
   ZoneOperationalState,
   FieldTask,
   TelemetryReading,
+  ConfirmedFieldReport,
+  RiskEvaluation,
 } from '@/types';
 import { createInitialZones } from './synthetic-data';
 import { evaluateRestartRisk, calculateEvidenceCompleteness } from './risk-engine';
@@ -15,13 +17,24 @@ import { transitionRestartEvent } from './state-machine';
 import { DEMO_THRESHOLDS } from './constants';
 import { ISafeRestartAdapter } from './contracts/interfaces';
 import { LocalSafeRestartAdapter } from './adapters/local-store-adapter';
+import { DynamoDBSafeRestartAdapter } from './adapters/dynamodb-adapter';
 
 export class SimulationStore {
   private state: SimulationState;
   private adapter: ISafeRestartAdapter;
 
-  constructor() {
-    this.adapter = new LocalSafeRestartAdapter();
+  constructor(customAdapter?: ISafeRestartAdapter) {
+    if (customAdapter) {
+      this.adapter = customAdapter;
+    } else if (process.env.USE_DYNAMODB === 'true') {
+      try {
+        this.adapter = new DynamoDBSafeRestartAdapter();
+      } catch {
+        this.adapter = new LocalSafeRestartAdapter();
+      }
+    } else {
+      this.adapter = new LocalSafeRestartAdapter();
+    }
     this.state = this.getInitialState();
   }
 
@@ -504,6 +517,157 @@ export class SimulationStore {
         reasons,
       };
     }
+  }
+
+  /**
+   * 4b. Commit a human-confirmed structured field report into the incident evidence record
+   * Re-evaluates deterministic risk assessment based on validated observations.
+   */
+  public commitFieldReport(
+    eventId: string,
+    report: Omit<ConfirmedFieldReport, 'id' | 'confirmedAt'>
+  ): {
+    event: RestartEvent;
+    audit: AuditEvent;
+    recalculatedRisk: RiskEvaluation;
+    reasons: string[];
+  } {
+    const event = this.getRestartEvent(eventId);
+    if (!event) throw new Error(`Event ${eventId} not found`);
+
+    const zone = this.getZone(event.zoneId);
+    const now = this.state.currentSimulatedTime || new Date().toISOString();
+    const reportId = `REP-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
+    const confirmedReport: ConfirmedFieldReport = {
+      ...report,
+      id: reportId,
+      confirmedAt: now,
+    };
+
+    if (!event.fieldReports) {
+      event.fieldReports = [];
+    }
+    event.fieldReports.push(confirmedReport);
+
+    const reasons: string[] = [];
+
+    // 1. If explicit chlorine measurement was verified by technician:
+    if (confirmedReport.explicitEvidence.freeChlorineMgL !== null) {
+      if (zone) {
+        zone.currentTelemetry.chlorineMgL = confirmedReport.explicitEvidence.freeChlorineMgL;
+      }
+      const chlorineTask = event.fieldTasks.find((t) => t.taskType === 'MEASURE_CHLORINE');
+      if (chlorineTask) {
+        chlorineTask.status = 'COMPLETED';
+        chlorineTask.completedAt = now;
+        chlorineTask.measurementsRecorded = {
+          ...chlorineTask.measurementsRecorded,
+          chlorineMgL: confirmedReport.explicitEvidence.freeChlorineMgL,
+        };
+      }
+      reasons.push(`Free chlorine measurement verified: ${confirmedReport.explicitEvidence.freeChlorineMgL} mg/L`);
+    }
+
+    // 2. If explicit pressure measurement was verified:
+    if (confirmedReport.explicitEvidence.pressurePsi !== null) {
+      if (zone) {
+        zone.currentTelemetry.pressurePsi = confirmedReport.explicitEvidence.pressurePsi;
+      }
+      const pressureTask = event.fieldTasks.find((t) => t.taskType === 'MEASURE_PRESSURE');
+      if (pressureTask) {
+        pressureTask.status = 'COMPLETED';
+        pressureTask.completedAt = now;
+        pressureTask.measurementsRecorded = {
+          ...pressureTask.measurementsRecorded,
+          pressurePsi: confirmedReport.explicitEvidence.pressurePsi,
+        };
+      }
+      reasons.push(`Gauge pressure verified: ${confirmedReport.explicitEvidence.pressurePsi} psi`);
+    }
+
+    // 3. If pipe leak status was inspected:
+    if (confirmedReport.suspectedFault.status === 'CONFIRMED' && zone) {
+      const leakTask = event.fieldTasks.find((t) => t.taskType === 'INSPECT_LEAK');
+      if (leakTask) {
+        leakTask.status = 'IN_PROGRESS';
+        leakTask.fieldNotes = `Active defect confirmed: ${confirmedReport.suspectedFault.description}`;
+      }
+      reasons.push(`Physical defect confirmed on network: ${confirmedReport.suspectedFault.description}`);
+    } else if (confirmedReport.suspectedFault.status === 'NONE') {
+      const leakTask = event.fieldTasks.find((t) => t.taskType === 'INSPECT_LEAK');
+      if (leakTask) {
+        leakTask.status = 'COMPLETED';
+        leakTask.completedAt = now;
+        leakTask.fieldNotes = 'Inspected and verified secure by field technician';
+      }
+      reasons.push('Physical inspection verified no active leak or pipe damage');
+    }
+
+    // 4. Update zone evidence completeness
+    if (zone) {
+      const completedTasks = event.fieldTasks.filter((t) => t.status === 'COMPLETED').length;
+      zone.evidenceCompletenessPercent = Math.min(
+        100,
+        Math.max(zone.evidenceCompletenessPercent, Math.round((completedTasks / Math.max(1, event.fieldTasks.length)) * 100))
+      );
+      zone.lastUpdated = now;
+    }
+
+    // 5. Recalculate deterministic risk evaluation from updated evidence!
+    const effectiveChlorine = confirmedReport.explicitEvidence.freeChlorineMgL !== null
+      ? confirmedReport.explicitEvidence.freeChlorineMgL
+      : (zone?.currentTelemetry.chlorineMgL ?? event.verificationSubmission?.freeChlorineMgL);
+
+    const activeIncidents = (zone?.incidents || []).filter((i) => {
+      if (confirmedReport.suspectedFault.status === 'NONE' && i.type === 'UNRESOLVED_LEAK') {
+        return false;
+      }
+      return !i.isResolved;
+    });
+
+    const recalculatedRisk = evaluateRestartRisk({
+      interruptionDurationHours: event.interruptionDurationHours,
+      minimumObservedPressurePsi: event.minimumObservedPressurePsi,
+      currentTelemetry: zone ? zone.currentTelemetry : {
+        timestamp: now,
+        pressurePsi: confirmedReport.explicitEvidence.pressurePsi ?? 25,
+        flowLps: 15,
+        chlorineMgL: effectiveChlorine,
+      },
+      incidents: activeIncidents,
+      recentVerificationChlorine: effectiveChlorine,
+      currentTimeIso: now,
+    });
+
+    event.riskEvaluation = recalculatedRisk;
+    event.updatedAt = now;
+
+    // 6. Append audit log entry (transparently reflecting human-confirmed action)
+    const auditId = `AUD-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const auditRecord: AuditEvent = {
+      id: auditId,
+      eventId: event.id,
+      zoneId: event.zoneId,
+      timestamp: now,
+      actor: confirmedReport.confirmedBy,
+      actorRole: 'FIELD_TECHNICIAN',
+      action: 'FIELD_REPORT_CONFIRMED',
+      previousState: event.state,
+      newState: event.state,
+      decisionReason: `Human-confirmed field report [${reportId}] committed to evidence record. Deterministic assessment recalculated: score ${recalculatedRisk.score}/100, decision: ${recalculatedRisk.action}.`,
+      evidenceReference: reportId,
+    };
+
+    event.auditTrailIds.push(auditId);
+    this.state.auditTrail.unshift(auditRecord);
+
+    return {
+      event,
+      audit: auditRecord,
+      recalculatedRisk,
+      reasons,
+    };
   }
 
   /**

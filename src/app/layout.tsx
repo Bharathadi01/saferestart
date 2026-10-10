@@ -3,9 +3,9 @@ import './globals.css';
 import { SafetyBanner } from '@/components/ui/SafetyBanner';
 
 export const metadata: Metadata = {
-  title: 'SafeRestart — Intermittent Drinking-Water Distribution Decision Support',
+  title: 'SafeRestart — Drinking-Water Restart Safety Support',
   description:
-    'Field-first operational decision-support prototype for evaluating hydraulic evidence and authorizing service restoration in intermittently supplied drinking-water networks.',
+    'Field-first decision support tool for verifying safety and authorizing restart of intermittently supplied drinking-water networks.',
 };
 
 export default function RootLayout({
@@ -14,14 +14,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col font-sans">
+    <html lang="en">
+      <body className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-sky-100 selection:text-sky-900">
         <SafetyBanner />
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500 font-mono">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span>SafeRestart Operational Prototype • AWS Environmental Hacks</span>
-            <span>Simulated Telemetry Demonstration Environment • Not for Unverified Release</span>
+        <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span className="font-medium text-slate-700">SafeRestart Decision Support Prototype</span>
+            <span className="text-slate-400">Local demo mode • Simulated telemetry • Does not replace certified lab testing</span>
           </div>
         </footer>
       </body>

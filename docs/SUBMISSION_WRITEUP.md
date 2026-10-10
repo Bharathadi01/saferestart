@@ -41,8 +41,8 @@ SafeRestart coordinates:
 2. **Deterministic Risk Assessment**: Evaluates physical indicators (duration, minimum observed pressure, active pipe leaks, disinfectant residual, telemetry freshness) using transparent, explainable rules.
 3. **Mandatory Safety Gating**: Missing or failing evidence strictly triggers an operational `HOLD`.
 4. **Mobile Field Technician Directives**: Dispatches explicit physical checklists (scour flushing, repair sleeve verification, DPD colorimeter chlorine testing) directly to technicians on their mobile devices.
-5. **Supervisor Release Gate**: Locks restoration approval until mandatory field evidence is confirmed by a certified engineer.
-6. **Immutable Regulatory Audit Trail**: Commits an attributed, tamper-resistant record of every measurement, action, and sign-off.
+5. **Supervisor Release Gate**: Locks restoration approval until mandatory field evidence is reviewed by a designated supervisor.
+6. **Structured Regulatory Audit Log**: Commits an attributed chronological audit record of every measurement, action, and supervisor decision.
 
 ---
 
