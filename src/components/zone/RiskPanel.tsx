@@ -26,6 +26,8 @@ export function RiskPanel({ riskEvaluation, eventId, zoneName }: RiskPanelProps)
     fieldDirectives: string[];
     regulatoryNote: string;
     modelUsed: string;
+    isSimulatedFallback?: boolean;
+    sourceLabel?: string;
   } | null>(null);
 
   const fetchAiExplanation = async () => {
@@ -173,12 +175,29 @@ export function RiskPanel({ riskEvaluation, eventId, zoneName }: RiskPanelProps)
 
         {aiExplanation && (
           <div className="bg-slate-950 border border-cyan-900/40 rounded-lg p-3.5 space-y-3 font-mono text-xs animate-in fade-in">
-            <div className="flex items-center justify-between text-[11px] text-cyan-400 border-b border-slate-800 pb-1.5">
-              <span>Model: {aiExplanation.modelUsed}</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-800">
-                Decision Support Only
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-[11px] border-b border-slate-800 pb-2">
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    aiExplanation.isSimulatedFallback ? 'bg-amber-400' : 'bg-emerald-400'
+                  }`}
+                />
+                <span className="text-slate-300 font-semibold">
+                  {aiExplanation.isSimulatedFallback ? 'Local Heuristics Engine' : 'AWS Bedrock Integration'}
+                </span>
+                <span className="text-slate-500 text-[10px]">({aiExplanation.modelUsed})</span>
+              </div>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
+                  aiExplanation.isSimulatedFallback
+                    ? 'bg-amber-950/60 text-amber-300 border-amber-800'
+                    : 'bg-emerald-950/60 text-emerald-300 border-emerald-800'
+                }`}
+              >
+                {aiExplanation.sourceLabel || (aiExplanation.isSimulatedFallback ? 'Local explanation — Amazon Bedrock was not called' : 'AI-assisted explanation — review against recorded evidence')}
               </span>
             </div>
+
             <p className="text-slate-300 text-xs leading-relaxed">
               {aiExplanation.explanation}
             </p>

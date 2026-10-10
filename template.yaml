@@ -155,7 +155,7 @@ Resources:
   GetZonesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./serverless/dist
+      CodeUri: ./serverless
       Handler: handlers/getZones.handler
       Policies:
         - DynamoDBReadPolicy:
@@ -171,7 +171,7 @@ Resources:
   EvaluateRiskFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./serverless/dist
+      CodeUri: ./serverless
       Handler: handlers/evaluateRisk.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -191,7 +191,7 @@ Resources:
   SubmitVerificationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./serverless/dist
+      CodeUri: ./serverless
       Handler: handlers/submitVerification.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -213,7 +213,7 @@ Resources:
   AuthorizeRestorationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./serverless/dist
+      CodeUri: ./serverless
       Handler: handlers/authorizeRestoration.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -235,7 +235,7 @@ Resources:
   BedrockExplainFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./serverless/dist
+      CodeUri: ./serverless
       Handler: handlers/bedrockExplain.handler
       Policies:
         - Statement:

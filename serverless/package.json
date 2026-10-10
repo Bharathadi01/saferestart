@@ -1,0 +1,9 @@
+{
+  "name": "saferestart-serverless-handlers",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AWS Lambda Serverless Handlers for SafeRestart Decisions",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.750.0"
+  }
+}

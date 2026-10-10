@@ -21,6 +21,7 @@ import {
 import { WaterZone, RestartEvent, AuditEvent } from '@/types';
 import { MetricCard } from '../ui/MetricCard';
 import { StatusBadge } from '../ui/StatusBadge';
+import { FieldReportCopilot } from '../copilot/FieldReportCopilot';
 
 interface CommandCenterProps {
   zones: WaterZone[];
@@ -342,6 +343,9 @@ export function CommandCenter({
           </table>
         </div>
       </div>
+
+      {/* SafeRestart Evidence Copilot Widget */}
+      <FieldReportCopilot />
 
       {/* Recent System & Audit Events Feed */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-5">

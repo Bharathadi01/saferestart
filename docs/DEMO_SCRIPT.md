@@ -20,19 +20,34 @@
 
 ---
 
-### [0:45 - 1:30] Interruption & Deterministic Risk Engine HOLD
+### [0:40 - 1:05] Interruption & Deterministic Risk Engine HOLD
 **Visual**:  
-1. Click **`Cut Supply`** on **Zone 5 (Eastern Green Foothills)**. Pressure drops to 3.8 psi, flow drops, and state switches to `Interrupted Supply`.  
+1. Click **`Cut Supply`** on **Zone 5 (Eastern Green Foothills)**. Pressure drops below 15 psi, flow drops to zero, and state switches to `Interrupted Supply`.  
 2. Click **`Assess Restart`**. State updates to `RESTART HOLD`.  
 3. Click **`Inspect`** to open the Zone Detail page (`/zones/zone-5`).  
 4. Show the React Flow network topology graph (inlet valve shows CLOSED, junctions show HOLD).  
-5. Highlight the Risk Engine Evaluation Card (Action: HOLD, Score: 75/100, missing chlorine residual flagged). Click **`Synthesize Directives`**.  
+5. Highlight the Risk Engine Evaluation Card (Action: HOLD, Score: 75/100, missing chlorine residual flagged). Click **`Synthesize Directives`** to show the Copilot explanation card with its attribution badge.  
 **Narration**:  
-> "Let's simulate a sudden main interruption on Zone 5. Instantly, pressure falls below our critical 15-psi threshold. The operator initiates a restart assessment. Immediately, our deterministic risk engine enforces an operational HOLD. Why? Because the pressure dropped into negative aspiration territory, and disinfectant residual is completely unverified. Our rules engine refuses to greenlight recharge on missing data."
+> "Let's simulate a sudden main interruption on Zone 5. Instantly, pressure collapses below our 15-psi threshold. The operator initiates a restart assessment. Immediately, our deterministic risk engine enforces an operational HOLD. Why? Because the pressure dropped into negative aspiration territory and residual chlorine is unverified. Our rules engine refuses to greenlight recharge on missing data."
 
 ---
 
-### [1:30 - 2:05] Mobile Field Worker Mode & Verification Protection
+### [1:05 - 1:30] SafeRestart Evidence Copilot (AI Structuring & Explanation)
+**Visual**:  
+1. In the Command Center, scroll to the **`Evidence Copilot — Field Note Structuring`** widget.  
+2. Click the preset: **`Zone 2 Suspected Leak & Missing Residual`**.  
+3. Click **`Structure Field Report with AI`**.  
+4. Highlight the structured draft output:  
+   - Extracted Zone 2 matched to schema.  
+   - Suspected fault preserved with uncertainty (`SUSPECTED` leak near valve V-04).  
+   - Missing info flagged: free chlorine reading absent.  
+   - Prominent attribution badge: `Local explanation — Amazon Bedrock was not called` (or active Bedrock model ID).  
+**Narration**:  
+> "To assist operators with messy field communications, our Evidence Copilot converts unstructured briefings into structured drafts. It preserves critical uncertainty—flagging a reported leak as 'SUSPECTED' rather than confirmed, and noting that missing chlorine is unknown, not zero. Crucially, the AI is strictly advisory: it cannot authorize service restoration."
+
+---
+
+### [1:30 - 1:55] Mobile Field Worker Mode & Verification Protection
 **Visual**:  
 1. Navigate to **`Field Worker Mode`** (`/field`). Select Zone 5.  
 2. Click **`Preset: Failing (0.06 mg/L)`** and click **`Submit Evidence`**. Show the red error banner enforcing continued HOLD.  
@@ -42,21 +57,21 @@
 
 ---
 
-### [2:05 - 2:30] Supervisor Authorization & Immutable Audit Trail
+### [1:55 - 2:20] Supervisor Authorization & Immutable Audit Trail
 **Visual**:  
 1. Navigate to **`Supervisor Review`** (`/supervisor`).  
 2. Select Zone 5. Show that all criteria (chlorine, pressure, flushing) are verified green and the approval gate is unlocked.  
-3. Check the compliance confirmation box and click **`Authorize Service Restoration`**. Zone 5 becomes `Service Restored`.  
-4. Navigate to **`Audit Trail`** (`/audit`). Show the complete chronological event stream and click **`Export Audit CSV`**.  
+3. Check the compliance confirmation box and click **`Authorize Service Restoration`**. Zone 5 becomes `Service Restored` at nominal 36 psi.  
+4. Navigate to **`Audit Trail`** (`/audit`). Show the newly committed chronological transition record and click **`Export Audit CSV`**.  
 **Narration**:  
-> "At the Supervisor Review gate, release is locked until all mandatory evidence passes. As Chief Engineer, I review the verified measurements, confirm the statutory compliance checklist, and authorize service restoration. Zone 5 is safely recharged to 36 psi. Finally, every single action, measurement, and transition is committed to an immutable regulatory audit ledger, ready for CSV export."
+> "At the Supervisor Review gate, release is locked until all mandatory evidence passes. As Chief Engineer, I review the verified measurements, confirm the statutory compliance checklist, and authorize service restoration. Zone 5 is safely recharged. Finally, every single action, measurement, and transition is committed to an immutable regulatory audit ledger, ready for CSV export."
 
 ---
 
-### [2:30 - 2:50] Technical Architecture & AWS Readiness
-**Visual**: Display Mermaid architecture diagram from `docs/ARCHITECTURE.md` or glance at `template.yaml`.  
+### [2:20 - 2:45] Technical Architecture & AWS Readiness
+**Visual**: Display Mermaid architecture diagram from `docs/ARCHITECTURE.md` or show `template.yaml`.  
 **Narration**:  
-> "Architecturally, SafeRestart is built on Next.js 15, TypeScript strict mode, React Flow, and Recharts. All business logic is strictly decoupled behind an `ISafeRestartAdapter` contract. We developed and tested Phase 2 locally with zero cloud dependencies, backed by a complete AWS SAM specification defining Amazon DynamoDB tables, an EventBridge event bus, and encrypted S3 evidence storage for production."
+> "Architecturally, SafeRestart is built on Next.js 15, TypeScript strict mode, React Flow, and Recharts. All business logic is decoupled behind an `ISafeRestartAdapter` contract. We developed and tested the product with zero cloud dependencies, backed by a production-ready AWS SAM template defining Amazon DynamoDB, EventBridge, Lambda handlers, and Bedrock integration."
 
 ---
 
