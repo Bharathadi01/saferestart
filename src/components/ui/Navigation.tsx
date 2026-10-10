@@ -11,8 +11,9 @@ import {
   RotateCcw,
   Zap,
   FastForward,
-  Cloud,
   Layers,
+  ChevronRight,
+  HelpCircle,
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -48,7 +49,7 @@ export function Navigation({
   ];
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-40">
+    <header className="border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* SafeRestart Brand */}
         <div className="flex items-center space-x-6">
@@ -94,12 +95,12 @@ export function Navigation({
           </nav>
         </div>
 
-        {/* Action Controls & AWS Cloud Status */}
+        {/* Action Controls & Simulation Buttons */}
         <div className="flex items-center space-x-2.5">
           {/* Environment Indicator */}
           <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300 font-mono">
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Local Adapter • AWS-Ready Architecture</span>
+            <span>Local Adapter • AWS Bedrock Ready</span>
           </div>
 
           {/* Simulation Controls */}
@@ -138,6 +139,44 @@ export function Navigation({
               <span className="hidden sm:inline">Reset</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* 3-Minute Demo Quick Links Bar for Judges */}
+      <div className="border-t border-slate-900 bg-slate-950/80 px-4 py-1.5 hidden sm:flex items-center justify-between text-[11px] font-mono text-slate-400">
+        <div className="flex items-center space-x-2">
+          <span className="text-cyan-400 font-bold">3-Min Judge Demo:</span>
+          <span className="text-slate-500">1.</span>
+          <button
+            onClick={() => onTriggerInterruption?.()}
+            className="text-rose-400 hover:text-rose-300 hover:underline"
+          >
+            Simulate Cut
+          </button>
+          <ChevronRight className="w-3 h-3 text-slate-600" />
+          <span className="text-slate-500">2.</span>
+          <Link href="/#holds" className="text-amber-400 hover:text-amber-300 hover:underline">
+            Risk HOLD
+          </Link>
+          <ChevronRight className="w-3 h-3 text-slate-600" />
+          <span className="text-slate-500">3.</span>
+          <Link href="/field" className="text-cyan-300 hover:text-cyan-200 hover:underline">
+            Field Checklist
+          </Link>
+          <ChevronRight className="w-3 h-3 text-slate-600" />
+          <span className="text-slate-500">4.</span>
+          <Link href="/supervisor" className="text-purple-300 hover:text-purple-200 hover:underline">
+            Supervisor Gate
+          </Link>
+          <ChevronRight className="w-3 h-3 text-slate-600" />
+          <span className="text-slate-500">5.</span>
+          <Link href="/audit" className="text-emerald-300 hover:text-emerald-200 hover:underline">
+            Audit Trail
+          </Link>
+        </div>
+
+        <div className="text-[10px] text-slate-500">
+          Field Safety • Low-Literacy UI • Deterministic Policy Gate
         </div>
       </div>
 
