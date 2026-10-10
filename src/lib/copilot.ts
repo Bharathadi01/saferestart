@@ -104,16 +104,35 @@ function sanitizeInput(text: string, maxLength = 1000): string {
     .trim();
 }
 
+export type BedrockAuthStrategy = 'bearer_token' | 'iam_static_keys' | 'iam_role_default_chain';
+
+export interface BedrockClientConfig {
+  client: BedrockRuntimeClient;
+  modelId: string;
+  region: string;
+  authStrategy: BedrockAuthStrategy;
+}
+
 /**
- * Retrieves Bedrock Client if credentials or bearer token are provided in environment
+ * Retrieves Bedrock Client using 3-tier authentication:
+ * Tier 1: Local development bearer token (AWS_BEARER_TOKEN_BEDROCK or BEDROCK_API_KEY) via httpBearerAuth
+ * Tier 2: Explicit IAM credentials (AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY) via SigV4
+ * Tier 3: Production IAM Compute Role / Default Credential Provider Chain (Amplify SSR, Lambda, ECS) via SigV4
+ * Tier 4: Returns null for uncredentialed local offline mode (graceful deterministic fallback)
  */
-export function getBedrockClient(): { client: BedrockRuntimeClient; modelId: string } | null {
+export function getBedrockClient(): BedrockClientConfig | null {
   const bearerToken = process.env.AWS_BEARER_TOKEN_BEDROCK || process.env.BEDROCK_API_KEY;
-  const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
-  const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
+  const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID && process.env.AWS_ACCESS_KEY_ID.trim().length > 0;
+  const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_SECRET_ACCESS_KEY.trim().length > 0;
   const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'ap-southeast-2';
   const modelId = process.env.BEDROCK_MODEL_ID || 'amazon.nova-micro-v1:0';
 
+  // Explicit opt-out for local testing/offline isolation
+  if (process.env.USE_LOCAL_FALLBACK_ONLY === 'true') {
+    return null;
+  }
+
+  // Tier 1: Bedrock Bearer Token (Local / short-term API key)
   if (bearerToken && bearerToken.trim().length > 0) {
     try {
       const client = new BedrockRuntimeClient({
@@ -121,12 +140,13 @@ export function getBedrockClient(): { client: BedrockRuntimeClient; modelId: str
         token: { token: bearerToken.trim() },
         authSchemePreference: ['httpBearerAuth'],
       });
-      return { client, modelId };
+      return { client, modelId, region, authStrategy: 'bearer_token' };
     } catch {
       return null;
     }
   }
 
+  // Tier 2: Explicit IAM Static Keys
   if (hasAccessKey && hasSecretKey) {
     try {
       const client = new BedrockRuntimeClient({
@@ -137,12 +157,41 @@ export function getBedrockClient(): { client: BedrockRuntimeClient; modelId: str
           ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN.trim() } : {}),
         },
       });
-      return { client, modelId };
+      return { client, modelId, region, authStrategy: 'iam_static_keys' };
     } catch {
       return null;
     }
   }
 
+  // Tier 3: Production IAM Compute Role / Default Credential Provider Chain
+  // Activated in production environments (e.g. AWS Amplify Hosting SSR), or when AWS compute role / container / execution environment variables are present,
+  // or explicitly enabled via AWS_USE_IAM_ROLE / AWS_AUTH_STRATEGY.
+  const isAwsComputeEnvironment =
+    !!process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
+    !!process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI ||
+    !!process.env.AWS_EXECUTION_ENV ||
+    !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    !!process.env.AWS_WEB_IDENTITY_TOKEN_FILE ||
+    !!process.env.AWS_ROLE_ARN ||
+    !!process.env.AWS_APP_ID ||
+    !!process.env.AMPLIFY_SSR ||
+    process.env.AWS_USE_IAM_ROLE === 'true' ||
+    process.env.AWS_AUTH_STRATEGY === 'iam_role';
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isAwsComputeEnvironment || isProduction) {
+    try {
+      const client = new BedrockRuntimeClient({
+        region,
+      });
+      return { client, modelId, region, authStrategy: 'iam_role_default_chain' };
+    } catch {
+      return null;
+    }
+  }
+
+  // Tier 4: Uncredentialed local development
   return null;
 }
 

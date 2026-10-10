@@ -303,15 +303,24 @@ NODE_ENV=development
 # AWS Region (Defaults to ap-southeast-2 Sydney, matching verified Bedrock playground)
 AWS_REGION=ap-southeast-2
 
-# AWS Authentication (Option 1: Short-term Bedrock API Key bearer token - Recommended for Hackathon)
+# Amazon Bedrock Model Configuration (Defaults to amazon.nova-micro-v1:0)
+BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
+
+# Production AWS IAM Role / Default Credential Provider Chain
+# In AWS Amplify Hosting or ECS/Lambda, role-based SigV4 auth is automatically discovered.
+# Static keys or bearer tokens are NOT required in production.
+# AWS_USE_IAM_ROLE=true
+
+# AWS Authentication (Option 1: Short-term Bedrock API Key bearer token - Local dev testing)
 # AWS_BEARER_TOKEN_BEDROCK=ey...
 
-# AWS Authentication (Option 2: Standard IAM Credentials)
+# AWS Authentication (Option 2: Standard IAM Credentials - Local dev alternative)
 # AWS_ACCESS_KEY_ID=
 # AWS_SECRET_ACCESS_KEY=
 # AWS_SESSION_TOKEN=
 
-# Amazon DynamoDB Table Names (Configured when deploying AWS SAM stack)
+# Storage & Persistence (Defaults to false / in-memory until real tables are provisioned)
+USE_DYNAMODB=false
 # ZONES_TABLE=saferestart-zones-dev
 # RESTART_EVENTS_TABLE=saferestart-events-dev
 # AUDIT_TRAIL_TABLE=saferestart-audit-dev
@@ -321,9 +330,6 @@ AWS_REGION=ap-southeast-2
 
 # Amazon EventBridge Custom Event Bus
 # EVENT_BUS_NAME=saferestart-bus-dev
-
-# Amazon Bedrock Model Configuration (Defaults to amazon.nova-micro-v1:0)
-BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
 ```
 
 When AWS credentials are omitted, SafeRestart automatically routes data through `LocalSafeRestartAdapter`, maintaining complete statefulness in memory without cloud dependencies or billing.
@@ -341,7 +347,7 @@ npm run lint
 # 2. Strict TypeScript type check (noEmit)
 npm run typecheck
 
-# 3. Unit and integration tests with Vitest (49/49 passing across 6 suites)
+# 3. Unit and integration tests with Vitest (64/64 passing across 6 suites)
 npm test
 
 # 4. Standalone live AWS Bedrock integration diagnostic
@@ -357,7 +363,13 @@ npm run build
 - `tests/unit/state-machine.test.ts`: Enforces state transition invariants, preventing restarts without prior field verification or unassigned supervisor sign-offs.
 - `tests/unit/adapters.test.ts`: Validates persistence contract adherence between local in-memory stores and cloud interfaces.
 - `tests/integration/simulation-workflow.test.ts`: Executes the complete end-to-end lifecycle from interruption to restoration across multiple synthetic zones.
-- `tests/aws-integration.test.ts`: 12 comprehensive integration and safety invariant tests verifying Bedrock SDK bearer-token auth (`httpBearerAuth`), Converse API payload formatting for `amazon.nova-micro-v1:0`, graceful deterministic offline fallback, and strict guarantees that AI never overrides deterministic safety engine HOLD decisions.
+- `tests/aws-integration.test.ts`: 21 comprehensive integration and safety invariant tests verifying:
+  - AWS SDK default credential provider chain for Amplify SSR compute IAM execution roles (SigV4).
+  - Bedrock SDK bearer-token auth (`httpBearerAuth`) for local development.
+  - Converse API payload formatting for `amazon.nova-micro-v1:0` in `ap-southeast-2`.
+  - Graceful deterministic offline fallback upon `AccessDeniedException` or network timeout.
+  - Strict safety guarantees that AI explanations never override deterministic safety engine `HOLD` decisions.
+- `tests/copilot.test.ts`: Validates field report structuring, operator guidance, prompt injection sanitization, and fallback behavior.
 
 For detailed testing documentation, see [`docs/TESTING.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/TESTING.md).
 

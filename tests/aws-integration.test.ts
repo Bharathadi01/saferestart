@@ -9,10 +9,14 @@ import { explainDecisionWithBedrock, getCloudEnvironmentStatus } from '../src/li
 
 describe('AWS Integration Verification Suite — Amazon Bedrock & Fallback Guardrails', () => {
   const originalEnv = process.env;
+  const setNodeEnv = (val: string) => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = val;
+  };
 
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+    setNodeEnv('test');
     delete process.env.AWS_BEARER_TOKEN_BEDROCK;
     delete process.env.BEDROCK_API_KEY;
     delete process.env.AWS_ACCESS_KEY_ID;
@@ -20,6 +24,18 @@ describe('AWS Integration Verification Suite — Amazon Bedrock & Fallback Guard
     delete process.env.AWS_SESSION_TOKEN;
     delete process.env.AWS_REGION;
     delete process.env.BEDROCK_MODEL_ID;
+    delete process.env.AWS_USE_IAM_ROLE;
+    delete process.env.AWS_AUTH_STRATEGY;
+    delete process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI;
+    delete process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI;
+    delete process.env.AWS_EXECUTION_ENV;
+    delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+    delete process.env.AWS_WEB_IDENTITY_TOKEN_FILE;
+    delete process.env.AWS_ROLE_ARN;
+    delete process.env.AWS_APP_ID;
+    delete process.env.AMPLIFY_SSR;
+    delete process.env.USE_LOCAL_FALLBACK_ONLY;
+    delete process.env.USE_DYNAMODB;
   });
 
   afterEach(() => {
@@ -309,6 +325,147 @@ describe('AWS Integration Verification Suite — Amazon Bedrock & Fallback Guard
       expect(result.missingEvidenceSummary).toContain('free chlorine residual measurement');
       // Must preserve mandatory supervisory advisory disclaimer
       expect(result.uncertaintiesAndLimitations).toContain('cannot certify potable water quality, override risk engine decisions, or replace statutory supervisor authorization');
+    });
+  });
+
+  describe('5. Production IAM Compute Role / Default Credential Provider Chain (Amplify SSR)', () => {
+    it('initializes client with default credential provider chain when in production mode without static keys or bearer token', () => {
+      setNodeEnv('production');
+
+      const config = getBedrockClient();
+      expect(config).not.toBeNull();
+      expect(config?.modelId).toBe('amazon.nova-micro-v1:0');
+      expect(config?.region).toBe('ap-southeast-2');
+      expect(config?.authStrategy).toBe('iam_role_default_chain');
+      expect(config?.client).toBeInstanceOf(BedrockRuntimeClient);
+    });
+
+    it('initializes client with default credential provider chain when compute container indicator is present', () => {
+      process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI = '/v2/credentials/mock-amplify-compute';
+
+      const config = getBedrockClient();
+      expect(config).not.toBeNull();
+      expect(config?.authStrategy).toBe('iam_role_default_chain');
+      expect(config?.region).toBe('ap-southeast-2');
+    });
+
+    it('initializes client with default credential provider chain when AWS_USE_IAM_ROLE is explicitly enabled', () => {
+      process.env.AWS_USE_IAM_ROLE = 'true';
+
+      const config = getBedrockClient();
+      expect(config).not.toBeNull();
+      expect(config?.authStrategy).toBe('iam_role_default_chain');
+    });
+
+    it('processes a successful Bedrock Converse response with IAM role auth in production', async () => {
+      setNodeEnv('production');
+
+      const mockBedrockResponse = {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                text: JSON.stringify({
+                  statusExplanation: 'Zone 1 restart is held pending residual verification under IAM compute role authorization.',
+                  missingEvidenceSummary: 'Missing chlorine residual measurement.',
+                  nextVerificationSteps: ['Collect DPD colorimeter chlorine sample.'],
+                  uncertaintiesAndLimitations: 'Advisory synthesis only.',
+                }),
+              },
+            ],
+          },
+        },
+      };
+
+      vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockResolvedValueOnce(mockBedrockResponse as never);
+
+      const result = await explainAssessmentWithCopilot({
+        zoneId: 'zone-1',
+        zoneName: 'Central Business District',
+        action: 'HOLD',
+        riskScore: 80,
+        contributors: [],
+        missingEvidence: ['free_chlorine_residual_measurement'],
+      });
+
+      expect(result.isSimulatedFallback).toBe(false);
+      expect(result.sourceLabel).toBe('AI-assisted explanation — review against recorded evidence');
+      expect(result.modelUsed).toBe('amazon.nova-micro-v1:0');
+      expect(result.statusExplanation).toContain('OPERATIONAL HOLD');
+    });
+
+    it('safely falls back to local heuristics when IAM role returns AccessDeniedException in production', async () => {
+      setNodeEnv('production');
+
+      vi.spyOn(BedrockRuntimeClient.prototype, 'send').mockRejectedValueOnce(
+        new Error('AccessDeniedException: User: arn:aws:sts::123456789012:assumed-role/amplify-compute-role is not authorized to perform: bedrock:InvokeModel')
+      );
+
+      const result = await explainAssessmentWithCopilot({
+        zoneId: 'zone-1',
+        zoneName: 'Central Business District',
+        action: 'HOLD',
+        riskScore: 80,
+        contributors: [
+          { factor: 'interruption_duration', severity: 'HIGH', explanation: 'Extended shutdown' },
+        ],
+        missingEvidence: ['free_chlorine_residual_measurement'],
+      });
+
+      expect(result.isSimulatedFallback).toBe(true);
+      expect(result.sourceLabel).toBe('Local explanation — Amazon Bedrock was not called');
+      expect(result.modelUsed).toContain('Local Engineering Heuristics');
+      expect(result.statusExplanation).toContain('OPERATIONAL HOLD');
+    });
+
+    it('reports AWS_SERVERLESS status and IAM role notice when running in production', () => {
+      setNodeEnv('production');
+
+      const status = getCloudEnvironmentStatus();
+      expect(status.provider).toBe('AWS_SERVERLESS');
+      expect(status.region).toBe('ap-southeast-2');
+      expect(status.bedrockConfigured).toBe(true);
+      expect(status.authStrategy).toBe('iam_role_default_chain');
+      expect(status.notice).toContain('AWS Amplify IAM Role');
+    });
+
+    it('bearer token takes precedence over production IAM role default chain if explicitly set', () => {
+      setNodeEnv('production');
+      process.env.AWS_BEARER_TOKEN_BEDROCK = 'local-dev-bearer-token';
+
+      const config = getBedrockClient();
+      expect(config?.authStrategy).toBe('bearer_token');
+
+      const status = getCloudEnvironmentStatus();
+      expect(status.authStrategy).toBe('bearer_token');
+      expect(status.notice).toContain('Amazon Bedrock API Key Runtime');
+    });
+
+    it('preserves USE_LOCAL_FALLBACK_ONLY even in production mode', () => {
+      setNodeEnv('production');
+      process.env.USE_LOCAL_FALLBACK_ONLY = 'true';
+
+      const config = getBedrockClient();
+      expect(config).toBeNull();
+
+      const status = getCloudEnvironmentStatus();
+      expect(status.provider).toBe('LOCAL_SIMULATOR');
+      expect(status.bedrockConfigured).toBe(false);
+      expect(status.authStrategy).toBe('none');
+    });
+
+    it('truthfully keeps tablesConfigured=false by default in production until USE_DYNAMODB is explicitly enabled', () => {
+      setNodeEnv('production');
+
+      const status = getCloudEnvironmentStatus();
+      expect(status.tablesConfigured).toBe(false);
+      expect(status.eventBridgeConfigured).toBe(false);
+
+      process.env.USE_DYNAMODB = 'true';
+      const statusWithDynamo = getCloudEnvironmentStatus();
+      expect(statusWithDynamo.tablesConfigured).toBe(true);
+      expect(statusWithDynamo.eventBridgeConfigured).toBe(true);
     });
   });
 });

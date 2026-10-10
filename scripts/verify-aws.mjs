@@ -47,7 +47,20 @@ const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID && process.env.AWS_ACCESS_K
 const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_SECRET_ACCESS_KEY.trim().length > 0;
 const hasSigV4 = hasAccessKey && hasSecretKey;
 
-const isConfigured = hasBearerToken || hasSigV4;
+const hasIamRole =
+  process.env.AWS_USE_IAM_ROLE === 'true' ||
+  process.env.AWS_AUTH_STRATEGY === 'iam_role' ||
+  !!process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
+  !!process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI ||
+  !!process.env.AWS_EXECUTION_ENV ||
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  !!process.env.AWS_WEB_IDENTITY_TOKEN_FILE ||
+  !!process.env.AWS_ROLE_ARN ||
+  !!process.env.AWS_APP_ID ||
+  !!process.env.AMPLIFY_SSR ||
+  process.env.NODE_ENV === 'production';
+
+const isConfigured = hasBearerToken || hasSigV4 || hasIamRole;
 const envLocalExists = fs.existsSync(path.join(rootDir, '.env.local'));
 
 console.log(`\n1. CONFIGURATION STATUS:`);
@@ -58,27 +71,33 @@ console.log(`   - .env.local File         : ${envLocalExists ? 'PRESENT' : 'NOT 
 console.log(`   - AWS_BEARER_TOKEN_BEDROCK: ${hasBearerToken ? '[CONFIGURED - REDACTED]' : 'NOT SET'}`);
 console.log(`   - AWS_ACCESS_KEY_ID       : ${hasAccessKey ? '[CONFIGURED - REDACTED]' : 'NOT SET'}`);
 console.log(`   - AWS_SECRET_ACCESS_KEY   : ${hasSecretKey ? '[CONFIGURED - REDACTED]' : 'NOT SET'}`);
+console.log(`   - IAM Role / Default Chain: ${hasIamRole ? '[DETECTED / ACTIVE]' : 'NOT SET'}`);
 console.log(`   - Authentication Strategy : ${
   hasBearerToken
     ? 'Bedrock Bearer Token (AWS SDK httpBearerAuth scheme)'
     : hasSigV4
-    ? 'AWS IAM Credentials (AWS SDK sigv4 scheme)'
+    ? 'AWS IAM Static Credentials (AWS SDK sigv4 scheme)'
+    : hasIamRole
+    ? 'AWS IAM Role / Default Credential Provider Chain (AWS SDK sigv4 scheme)'
     : 'NONE (Offline Fallback Active)'
 }`);
 
 if (!isConfigured) {
   console.log(`\n2. LIVE AWS OPERATION STATUS: BLOCKED BY MISSING CREDENTIALS`);
-  console.log(`   - Reason: Neither AWS_BEARER_TOKEN_BEDROCK nor IAM access keys are configured.`);
+  console.log(`   - Reason: Neither AWS_BEARER_TOKEN_BEDROCK, IAM access keys, nor IAM Role credentials are configured.`);
   console.log(`   - Active Mode: LOCAL ENGINEERING HEURISTICS (Deterministic Offline Fallback).`);
   console.log(`   - Safety Impact: Zero degradation. Deterministic risk engine and state machine are 100% operational.`);
   console.log(`\n3. HOW TO ENABLE LIVE AMAZON BEDROCK:`);
-  console.log(`   Option A — Bedrock API Key / Bearer Token (Recommended):`);
+  console.log(`   Option A — Bedrock API Key / Bearer Token (Local Development):`);
   console.log(`     export AWS_BEARER_TOKEN_BEDROCK="your_bedrock_api_key"`);
   console.log(`     npm run verify:aws`);
   console.log(`     (or place AWS_BEARER_TOKEN_BEDROCK=... inside .env.local)`);
   console.log(`\n   Option B — Standard AWS IAM Access Keys:`);
   console.log(`     export AWS_ACCESS_KEY_ID="your_key"`);
   console.log(`     export AWS_SECRET_ACCESS_KEY="your_secret"`);
+  console.log(`     npm run verify:aws`);
+  console.log(`\n   Option C — AWS IAM Compute Role / Default Credential Provider Chain (Amplify SSR / ECS):`);
+  console.log(`     export AWS_USE_IAM_ROLE="true"`);
   console.log(`     npm run verify:aws`);
   console.log('\n' + '='.repeat(68));
   process.exit(0);
@@ -99,7 +118,7 @@ try {
       token: { token: bearerToken.trim() },
       authSchemePreference: ['httpBearerAuth'],
     });
-  } else {
+  } else if (hasSigV4) {
     client = new BedrockRuntimeClient({
       region,
       credentials: {
@@ -107,6 +126,10 @@ try {
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY.trim(),
         ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN.trim() } : {}),
       },
+    });
+  } else {
+    client = new BedrockRuntimeClient({
+      region,
     });
   }
 
@@ -130,7 +153,13 @@ try {
   console.log(`   - Latency             : ${latency}ms`);
   console.log(`   - Region Verified     : ${region}`);
   console.log(`   - Model Invoked       : ${modelId}`);
-  console.log(`   - Auth Scheme Used    : ${hasBearerToken ? 'httpBearerAuth (Bearer Token)' : 'sigv4 (IAM Credentials)'}`);
+  console.log(`   - Auth Scheme Used    : ${
+    hasBearerToken
+      ? 'httpBearerAuth (Bearer Token)'
+      : hasSigV4
+      ? 'sigv4 (IAM Static Credentials)'
+      : 'sigv4 (IAM Role / Default Credential Chain)'
+  }`);
   console.log(`   - Model Response      : "${reply?.trim() || '[Empty response]'}"`);
   console.log(`   - Status              : PASS — Genuine AWS Bedrock connection verified.`);
 } catch (err) {
