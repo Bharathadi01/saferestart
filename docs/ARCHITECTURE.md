@@ -36,15 +36,16 @@ flowchart TD
         IPub["IEventPublisher"]
     end
 
-    subgraph LocalImpl ["Active Phase 2 Implementation"]
+    subgraph LocalImpl ["Active Local Implementation"]
         Local["LocalSafeRestartAdapter (In-Memory + Deterministic SCADA Generator)"]
     end
 
-    subgraph CloudTarget ["Target AWS Serverless Stack (SAM template.yaml)"]
-        DDB["Amazon DynamoDB (Pay-Per-Request, SSE-KMS, PITR)"]
+    subgraph CloudTarget ["Target AWS Cloud & Hosting Stack"]
+        Amplify["AWS Amplify Hosting (Next.js 15 SSR + IAM Role)"]
+        DDB["Amazon DynamoDB (Single-table via AwsDynamoDbAdapter)"]
         EB["Amazon EventBridge Custom Event Bus"]
         S3["Amazon S3 (Encrypted Evidence Bucket)"]
-        Bedrock["Amazon Bedrock (Claude 3 Sonnet Operator Synthesis)"]
+        Bedrock["Amazon Bedrock (Nova Micro v1 Operator Synthesis)"]
     end
 
     UI --> Hook
@@ -53,7 +54,9 @@ flowchart TD
     CoreEngine --> IData
     IData --> IZone & IEvent & IAudit & IPub
     IZone & IEvent & IAudit & IPub --> Local
-    IZone & IEvent & IAudit & IPub -.->|Target Phase 3| CloudTarget
+    IZone & IEvent & IAudit & IPub -.->|Cloud Target| DDB
+    UI --> Amplify
+    Amplify --> Bedrock
 ```
 
 ---
@@ -103,7 +106,7 @@ stateDiagram-v2
 
 ## 3. Deterministic Risk Engine Logic
 
-Implemented in [`src/lib/risk-engine.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/risk-engine.ts), the engine calculates an illustrative vulnerability score ($0 - 100$) and explicit contributing factors:
+Implemented in [`src/lib/risk-engine.ts`](../src/lib/risk-engine.ts), the engine calculates an illustrative vulnerability score ($0 - 100$) and explicit contributing factors:
 
 ### Evaluated Dimensions:
 1. **Interruption Duration**:
@@ -129,7 +132,7 @@ Implemented in [`src/lib/risk-engine.ts`](file:///Users/bharathadithya/.gemini/a
 
 ## 4. Storage & Event Abstraction Architecture
 
-To ensure zero lock-in and allow development without active cloud credentials, persistence is isolated behind formal TypeScript contracts in [`src/lib/contracts/interfaces.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/contracts/interfaces.ts):
+To ensure zero lock-in and allow development without active cloud credentials, persistence is isolated behind formal TypeScript contracts in [`src/lib/contracts/interfaces.ts`](../src/lib/contracts/interfaces.ts):
 
 - `IZoneRepository`: Abstract queries for distribution zones, topology nodes, and pipe segments.
 - `IRestartEventRepository`: Abstract queries for restart events and field task lifecycle.
@@ -138,12 +141,13 @@ To ensure zero lock-in and allow development without active cloud credentials, p
 - `ISafeRestartAdapter`: High-level provider interface.
 
 ### Active Local Implementation:
-[`LocalSafeRestartAdapter`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/adapters/local-store-adapter.ts) executes 100% in-process. All business logic in `store.ts`, `state-machine.ts`, and `risk-engine.ts` communicates exclusively through these contracts.
+[`LocalSafeRestartAdapter`](../src/lib/adapters/local-store-adapter.ts) executes 100% in-process. All business logic in `store.ts`, `state-machine.ts`, and `risk-engine.ts` communicates exclusively through these contracts.
 
-### Target AWS Serverless Implementation:
-In Phase 3, an `AwsSafeRestartAdapter` can be supplied mapping:
+### AWS Cloud Implementation:
+An [`AwsDynamoDbAdapter`](../src/lib/adapters/dynamodb-adapter.ts) is implemented and ready for cloud deployment:
 - `IZoneRepository` $\rightarrow$ Amazon DynamoDB `saferestart-zones-dev`
 - `IRestartEventRepository` $\rightarrow$ Amazon DynamoDB `saferestart-events-dev` (GSI on `zoneId`)
 - `IAuditRepository` $\rightarrow$ Amazon DynamoDB `saferestart-audit-dev` (GSI on `zoneId` + `timestamp`)
 - `IEventPublisher` $\rightarrow$ Amazon EventBridge `saferestart-bus-dev`
 - Field photo evidence $\rightarrow$ Amazon S3 `saferestart-evidence-...`
+- Complete IaC specification in [`template.yaml`](../template.yaml)

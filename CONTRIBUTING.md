@@ -79,8 +79,8 @@ npm run build
 
 - **TypeScript Strict Mode**: TypeScript strict mode is enabled. Do not use `any` unless there is a documented, unavoidable constraint. Use discriminated unions and strict interfaces.
 - **Component Design**: Keep UI components modular. Separate business logic (risk heuristics, state machine transitions) from presentation components.
-- **Styling**: Use Tailwind CSS utility classes adhering to the operational dark navy palette (`slate-900`, `slate-950`, `sky-500`, `amber-500`, `emerald-500`, `rose-500`).
-- **Persistence Boundary**: New features needing persistence must interface through `ISafeRestartAdapter` in `src/lib/adapters/index.ts` so both local in-memory simulation and AWS DynamoDB backends remain supported.
+- **Styling**: Use Tailwind CSS utility classes adhering to the accessible civic public-works light design system (`slate-50`, `#f8fafc` backgrounds, crisp slate borders, accessible text contrast, and clear state badges).
+- **Persistence Boundary**: New features needing persistence must interface through `ISafeRestartAdapter` in `src/lib/contracts/interfaces.ts` so both local in-memory simulation and AWS DynamoDB backends remain supported.
 
 ---
 

@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { WaterZone, RestartEvent, VerificationSubmission } from '@/types';
 import { DEMO_THRESHOLDS } from '@/lib/constants';
 import { FieldReportCopilot } from '@/components/copilot/FieldReportCopilot';
+import { NextActionCard } from '@/components/ui/NextActionCard';
 
 interface FieldWorkerModeProps {
   zones: WaterZone[];
@@ -419,6 +420,10 @@ export function FieldWorkerMode({
     };
   };
 
+  const priorityZone = zones.find(
+    (z) => z.operationalState === 'HOLD' || z.operationalState === 'INTERRUPTED' || z.operationalState === 'VERIFICATION_REQUIRED'
+  );
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* SCREEN 1: ZONE LAUNCHPAD (Answer the 3 key questions) */}
@@ -448,6 +453,55 @@ export function FieldWorkerMode({
               </div>
             </div>
           </div>
+
+          {/* Priority Next Action */}
+          {priorityZone ? (
+            <NextActionCard
+              situation={
+                lang === 'ta'
+                  ? `${priorityZone.name} (${priorityZone.code}) மண்டலத்தில் விநியோக நிறுத்தம் ஏற்பட்டுள்ளது. நீர் விநியோகத்தை தொடங்குவதற்கு முன் கள ஆய்வு அவசியம்.`
+                  : `${priorityZone.name} (${priorityZone.code}) distribution line experienced shutoff. Water supply is halted until physical safety verification is completed.`
+              }
+              safetyStatus={priorityZone.operationalState === 'VERIFICATION_REQUIRED' ? 'CAUTION' : 'HOLD'}
+              safetyLabel={
+                lang === 'ta'
+                  ? (priorityZone.operationalState === 'VERIFICATION_REQUIRED' ? 'சரிபார்ப்பு தேவை' : 'பாதுகாப்பு நிறுத்தம் செயலில்')
+                  : (priorityZone.operationalState === 'VERIFICATION_REQUIRED' ? 'FIELD VERIFICATION IN PROGRESS' : 'CRITICAL SAFETY HOLD')
+              }
+              responsibleRole={lang === 'ta' ? 'கள ஆய்வாளர் (Field Technician)' : 'Certified Field Technician'}
+              evidenceNotes={[
+                lang === 'ta' ? 'குழாய் பழுது மற்றும் கசிவு ஆய்வு அவசியம்' : 'Physical pipe integrity and joint inspection required',
+                lang === 'ta' ? '15 நிமிட முனைய வெளியேற்றம் (Flush) தேவை' : '15-minute terminal scour flushing required',
+                lang === 'ta' ? 'குளோரின் அளவு >= 0.20 mg/L இருக்க வேண்டும்' : 'Free chlorine residual must meet >= 0.20 mg/L floor',
+              ]}
+              nextAction={
+                lang === 'ta'
+                  ? `மண்டலம் ${priorityZone.code} க்கான ஆய்வு சரிபார்ப்புப் பட்டியலை உடனடியாகத் தொடங்கவும்.`
+                  : `Start the physical inspection checklist for ${priorityZone.name}.`
+              }
+              actionButton={{
+                label: lang === 'ta' ? `ஆய்வைத் தொடங்கு (${priorityZone.code})` : `Start Water Check for ${priorityZone.code}`,
+                onClick: () => handleStartInspection(priorityZone.id),
+                variant: 'primary',
+              }}
+            />
+          ) : (
+            <NextActionCard
+              situation={
+                lang === 'ta'
+                  ? 'அனைத்து 5 நீர் விநியோக மண்டலங்களும் சாதாரண அழுத்தத்தில் சுத்தமான குடிநீரை வழங்கி வருகின்றன.'
+                  : 'All 5 municipal distribution sectors are operating normally within pressure and safety parameters.'
+              }
+              safetyStatus="STABLE"
+              safetyLabel={lang === 'ta' ? 'விநியோகம் சீரானது' : 'NOMINAL SUPPLY ACTIVE'}
+              responsibleRole={lang === 'ta' ? 'வழக்கமான கண்காணிப்பு' : 'Continuous Quality Monitoring'}
+              nextAction={
+                lang === 'ta'
+                  ? 'எந்த அவசர நடவடிக்கையும் தேவையில்லை. அழுத்த கண்காணிப்பைத் தொடரவும்.'
+                  : 'No field intervention required. Maintain continuous SCADA pressure monitoring.'
+              }
+            />
+          )}
 
           {/* Question 1: Which zone needs attention? */}
           <div className="space-y-3">
@@ -1062,33 +1116,34 @@ export function FieldWorkerMode({
                 </p>
               </div>
 
-              {/* Prominent Decision Callout */}
-              <div
-                className={`p-5 rounded-xl border ${
+              {/* Prominent Next Action Decision Callout */}
+              <NextActionCard
+                situation={
                   allChecksPassed
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                    : 'bg-rose-50 border-rose-300 text-rose-950'
-                }`}
-              >
-                <div className="flex items-start space-x-3.5">
-                  {allChecksPassed ? (
-                    <CheckCircle2 className="w-6 h-6 text-emerald-700 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertOctagon className="w-6 h-6 text-rose-700 shrink-0 mt-0.5" />
-                  )}
-                  <div className="space-y-1.5">
-                    <h4 className="text-base font-bold">
-                      {allChecksPassed ? t.decisionPassTitle : t.decisionHoldTitle}
-                    </h4>
-                    <p className="text-xs leading-relaxed text-slate-700">
-                      {allChecksPassed ? t.decisionPassDesc : t.decisionHoldDesc}
-                    </p>
-                    <p className="text-xs font-semibold pt-1 text-slate-900">
-                      {allChecksPassed ? t.nextActionPass : t.nextActionHold}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                    ? (lang === 'ta'
+                        ? 'அனைத்து களப் பாதுகாப்பு அளவுகோல்களும் திருப்திகரமாக நிறைவடைந்துள்ளன.'
+                        : 'All physical field safety criteria are verified and meet statutory thresholds.')
+                    : (lang === 'ta'
+                        ? 'ஒன்று அல்லது அதற்கு மேற்பட்ட பாதுகாப்பு சோதனைகள் தோல்வியடைந்தன அல்லது முழுமையடையவில்லை.'
+                        : 'One or more physical safety checks failed or are incomplete.')
+                }
+                safetyStatus={allChecksPassed ? 'PROCEED' : 'HOLD'}
+                safetyLabel={allChecksPassed ? t.decisionPassTitle : t.decisionHoldTitle}
+                responsibleRole={lang === 'ta' ? 'கள ஆய்வாளர் (Field Technician)' : 'Certified Field Technician'}
+                evidenceNotes={[
+                  `${t.lblLeak}: ${leakState === 'YES' ? 'Secure' : 'Unsecured / Active hazard'}`,
+                  `${t.lblFlush}: ${flushState === 'YES' ? '15-min scour verified' : 'Incomplete'}`,
+                  `${t.lblChlorine}: ${freeChlorine} mg/L (${isChlorineSafe ? 'Safe >= 0.20' : 'Unsafe < 0.20'})`,
+                  `${t.lblPhoto}: ${photoAttached ? 'Attached' : 'Missing'}`,
+                ]}
+                nextAction={allChecksPassed ? t.nextActionPass : t.nextActionHold}
+                actionButton={{
+                  label: submitting ? t.btnSubmitting : t.btnSubmit,
+                  onClick: handleSubmit,
+                  variant: allChecksPassed ? 'teal' : 'secondary',
+                  disabled: submitting,
+                }}
+              />
 
               {/* Answers Summary Table */}
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">

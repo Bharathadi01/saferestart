@@ -3,12 +3,27 @@
 > **Field-first decision support for safer drinking-water network restarts.**  
 > *Built for the WeMakeDevs × AWS Environmental Hacks Hackathon*
 
+[![Next.js](https://img.shields.io/badge/Next.js-15.2.1-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![Amazon Bedrock](https://img.shields.io/badge/Amazon_Bedrock-Nova_Micro_v1-FF9900?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
+[![AWS Amplify](https://img.shields.io/badge/AWS_Amplify-Hosting_SSR-FF9900?style=flat-square&logo=aws-amplify)](https://aws.amazon.com/amplify/)
+[![Tests](https://img.shields.io/badge/Tests-64%2F64_Passing-emerald?style=flat-square&logo=vitest)](tests/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-slate?style=flat-square)](LICENSE)
+
 ---
 
 > [!CAUTION]
 > ### SAFETY & REGULATORY DISCLAIMER
 > **SafeRestart is an operational decision-support prototype built for demonstration, engineering evaluation, and hackathon presentation.**  
 > It does **not** certify drinking-water microbiological or chemical safety, nor does it replace statutory municipal water utility standard operating procedures, certified laboratory testing, or statutory public health regulations. All sensor streams, pressure curves, water-quality values, and risk scores within this repository are deterministic simulated demonstration data. Actual water-supply restoration requires physical field testing, certified laboratory confirmation, and explicit authorization by licensed municipal waterworks engineers.
+
+---
+
+## Operations Command Center
+
+![SafeRestart Operations Command Center](docs/screenshots/01-command-center.png)
+*Figure 1: SafeRestart Operations Command Center (`/`) showing real-time District Metered Area status, pressure telemetry, active restart holds, and demonstration controls.*
 
 ---
 
@@ -21,11 +36,11 @@
 - [5. Application Walkthrough & Visual Tour](#5-application-walkthrough--visual-tour)
 - [6. Architecture & System Design](#6-architecture--system-design)
 - [7. Technology Stack](#7-technology-stack)
-- [8. Installation & Local Development](#8-installation--local-development)
-- [9. Configuration & Environment Variables](#9-configuration--environment-variables)
-- [10. Testing, Quality & Build Verification](#10-testing-quality--build-verification)
-- [11. 3-Minute Demonstration Script](#11-3-minute-demonstration-script)
-- [12. AWS Architecture & Integration Status](#12-aws-architecture--integration-status)
+- [8. Project Structure](#8-project-structure)
+- [9. Installation & Local Development](#9-installation--local-development)
+- [10. Configuration & Environment Variables](#10-configuration--environment-variables)
+- [11. Testing, Quality & Build Verification](#11-testing-quality--build-verification)
+- [12. AWS Architecture & Deployment Guide](#12-aws-architecture--deployment-guide)
 - [13. Data Handling, Simulation Mode & Boundaries](#13-data-handling-simulation-mode--boundaries)
 - [14. AI Usage Disclosure](#14-ai-usage-disclosure)
 - [15. Roadmap & Future Improvements](#15-roadmap--future-improvements)
@@ -72,15 +87,16 @@ SafeRestart answers the **6 essential operational questions** every water utilit
 | Capability / Module | Status | Implementation Details |
 | :--- | :--- | :--- |
 | **Deterministic Simulation Engine** | **Implemented** | 5 distinct distribution zones with distinct topology, elevation profiles, pipe age, and synthetic telemetry generators. |
-| **Interactive Network Topology Map** | **Implemented** | React Flow (`@xyflow/react`) canvas rendering reservoirs, PRVs, pipe segments, junctions, and hydrant sampling taps. |
+| **Interactive Network Topology Map** | **Implemented** | React Flow (`@xyflow/react`) canvas rendering reservoirs, PRVs, pipe segments, junctions, and hydrant sampling taps with live node inspection. |
 | **Deterministic Risk Engine** | **Implemented** | Multi-factor rule-based heuristics evaluating interruption duration, negative pressure ingress, and active pipe leaks without black-box opacity. |
-| **State Machine Lifecycle** | **Implemented** | Strict state machine DAG preventing unauthorized state transitions (`IDLE` $\rightarrow$ `INTERRUPTED` $\rightarrow$ `AWAITING_VERIFICATION` $\rightarrow$ `AWAITING_APPROVAL` $\rightarrow$ `RESTORED`). |
-| **Field Technician Checklist** | **Implemented** | Mobile-optimized interface for field workers to record DPD chlorine, digital pressure, scouring flush duration, and photo verification. |
-| **Supervisor Authorization Gate** | **Implemented** | Hard-locked sign-off barrier requiring satisfied field evidence, non-empty sign-off comments, and supervisor attribution. |
-| **Regulatory Audit Ledger** | **Implemented** | Complete event trail tracking actor identity, previous state, new state, timestamp, and one-click CSV export. |
+| **State Machine Lifecycle** | **Implemented** | Strict state machine DAG preventing unauthorized state jumps (`IDLE` $\rightarrow$ `INTERRUPTED` $\rightarrow$ `AWAITING_VERIFICATION` $\rightarrow$ `AWAITING_APPROVAL` $\rightarrow$ `RESTORED`). |
+| **Field Technician Checklist** | **Implemented** | Mobile-optimized interface for field workers to record DPD chlorine, digital pressure, scouring flush duration, and photo verification with judge presets. |
+| **Supervisor Authorization Gate** | **Implemented** | Hard-locked sign-off barrier requiring satisfied field evidence, compliance confirmation, and supervisor attribution. |
+| **Regulatory Audit Ledger** | **Implemented** | Complete chronological event trail tracking actor identity, previous state, new state, timestamp, and one-click CSV compliance export. |
 | **Bedrock AI Advisory Synthesis** | **Implemented** | Amazon Bedrock (`amazon.nova-micro-v1:0` in `ap-southeast-2`) integration with deterministic offline heuristics fallback for natural-language explanations and field note structuring. |
-| **Decoupled Persistence Architecture** | **Implemented** | Clean `ISafeRestartAdapter` interface with fully operational `LocalSafeRestartAdapter` (zero-credential local dev) and AWS DynamoDB data adapter. |
-| **Infrastructure-as-Code (IaC)** | **Implemented** | Production-ready AWS SAM specification ([`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml)) defining API Gateway, Lambda, DynamoDB, S3, and EventBridge. |
+| **Amplify SSR Cloud Authentication** | **Implemented** | AWS SDK default credential provider chain integration for IAM execution roles (SigV4) in AWS Amplify Hosting alongside local bearer-token workflows. |
+| **Decoupled Persistence Architecture** | **Implemented** | Clean `ISafeRestartAdapter` interface with fully operational `LocalSafeRestartAdapter` (zero-credential local dev) and `AwsDynamoDbAdapter` for cloud deployment. |
+| **Infrastructure-as-Code (IaC)** | **Implemented** | Production-ready AWS SAM specification ([`template.yaml`](template.yaml)) defining API Gateway, Lambda, DynamoDB, S3, and EventBridge. |
 | *EPANET 2.2 Hydraulic Engine WASM* | *Planned* | Compiling the EPA EPANET hydraulic solver to WebAssembly for client-side water-age and hydraulic transient calculation. |
 | *LoRaWAN Edge Gateway Ingestion* | *Planned* | Direct binary payload parser for physical pressure sensors and cellular telemetry units. |
 | *Offline PWA Field Sync* | *Planned* | ServiceWorker IndexedDB queueing for field technicians operating in basement or subterranean vaults without cellular coverage. |
@@ -90,7 +106,7 @@ SafeRestart answers the **6 essential operational questions** every water utilit
 
 ## 4. Operational Workflow & User Journey
 
-SafeRestart supports 4 primary operational roles:
+SafeRestart coordinates four primary operational roles across the restoration lifecycle:
 
 ```mermaid
 sequenceDiagram
@@ -117,49 +133,51 @@ sequenceDiagram
     Audit->>App: Review Ledger (/audit) & Export CSV Compliance Report
 ```
 
-1. **SCADA Dispatcher** (`/`): Observes live pressure drop or valve failure in Zone 1. Initiates restart assessment. The system evaluates network age and active leaks, placing the zone on **HOLD**.
-2. **Field Technician** (`/field`): Receives automated directives on their mobile device: repair collar leak on `Z1-P-104`, conduct 15-minute scouring flush at terminal hydrant `Z1-HYD-01`, and record DPD colorimeter chlorine sample.
-3. **Operations Supervisor** (`/supervisor`): Reviews submitted photo proof, field timestamps, and chemical values. The gated sign-off button remains disabled until all demonstration thresholds ($\ge 0.20\text{ mg/L}$ free chlorine, $\ge 20\text{ psi}$) are verified. Authorizes water service restoration.
+1. **SCADA Dispatcher** (`/`): Observes live pressure drops or valve failures across 5 distribution zones. Initiates restart assessment. The system evaluates pipe age and active leaks, placing vulnerable zones on **HOLD**.
+2. **Field Technician** (`/field`): Receives automated directives on their mobile device: repair collar leaks, conduct a 15-minute scouring flush at terminal hydrants, and record DPD colorimeter chlorine samples.
+3. **Operations Supervisor** (`/supervisor`): Reviews submitted photo proof, field timestamps, and chemical values. The gated sign-off button remains disabled until all physical criteria ($\ge 0.20\text{ mg/L}$ free chlorine, $\ge 20\text{ psi}$) are verified. Authorizes water service restoration.
 4. **Compliance Auditor** (`/audit`): Inspects the chronological transition ledger, verifies actor attribution (`marcus.vance@utility.gov`), and exports the audit record for regulatory reporting.
 
 ---
 
 ## 5. Application Walkthrough & Visual Tour
 
-> Placeholder images below reference assets in [`docs/screenshots/`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/screenshots/). Replace them with actual screenshots of your running instance.
+Every screenshot below captures the genuine, pixel-perfect user interface of the running SafeRestart application:
 
 ### 1. Operations Command Center
-The central command dashboard provides an overview of all 5 municipal water-supply zones, aggregate restart holds, evidence completeness progress bars, and simulation controls.
+The central command dashboard provides a high-level operational overview across all 5 municipal water-supply zones, aggregate restart holds, evidence completeness progress bars, and simulation controls.
 
 ![Operations Command Center](docs/screenshots/01-command-center.png)
 *Figure 1: Operations Command Center (`/`) showing zone grid, pressure indicators, and demonstration controls.*
 
 ### 2. Interactive Water Network Topology
-Built with React Flow, this view allows engineers to inspect reservoirs, control valves, junctions, pipe age, and terminal sampling hydrants.
+Built with React Flow (`@xyflow/react`), this interactive schematic allows engineers to inspect reservoirs, control valves, junctions, pipe age, and terminal sampling hydrants with real-time inspection sidebars.
 
 ![Zone Detail and Topology](docs/screenshots/02-zone-topology.png)
 *Figure 2: Zone Detail View (`/zones/zone-1`) featuring interactive hydraulic node graph and real-time pressure time series.*
 
-### 3. Deterministic Risk Evaluation & AI Advisory
+### 3. Deterministic Risk Evaluation & AI Advisory Synthesis
 Transparent risk breakdown highlighting interruption duration, negative-pressure ingress hazards, and active pipe leaks with Amazon Bedrock operator explanations.
 
 ![Risk Engine Panel](docs/screenshots/03-risk-engine-panel.png)
-*Figure 3: Deterministic risk engine score card and Amazon Bedrock advisory synthesis.*
+*Figure 3: Deterministic risk engine score card and Amazon Bedrock advisory synthesis (`/events/EVT-2026-001`).*
 
-### 4. Mobile Field Worker Verification
-Step-by-step mobile checklist designed for utility crews in the field to log chlorine measurements, flush hydrants, and upload photo proof.
+### 4. Field Technician Verification & Mobile Safety Checklist
+Step-by-step checklist designed for utility crews in the field to log chlorine measurements, flush hydrants, and record physical evidence—optimized for both desktop workstations and mobile field devices.
 
-![Field Worker Mode](docs/screenshots/04-field-worker-interface.png)
-*Figure 4: Mobile Field Worker Mode (`/field`) with judge presets for passing and failing field scenarios.*
+| Desktop Workstation Viewport | Mobile Field Handheld Viewport |
+| :---: | :---: |
+| ![Field Worker Interface](docs/screenshots/04-field-worker-interface.png) | <img src="docs/screenshots/07-mobile-field-worker.png" width="300" alt="Mobile Field Worker Viewport" /> |
+| *Figure 4a: Field Worker Mode (`/field`) desktop layout with quick evaluation presets.* | *Figure 4b: Mobile-optimized field technician checklist.* |
 
 ### 5. Supervisor Authorization Gate
-Gated sign-off interface that locks out service restoration until all configured physical criteria are met.
+Gated sign-off interface that locks out service restoration until all configured physical criteria are met. The sign-off button is hard-disabled until compliance checks are verified.
 
 ![Supervisor Authorization Gate](docs/screenshots/05-supervisor-authorization-gate.png)
 *Figure 5: Supervisor Review Gate (`/supervisor`) displaying compliance checks, signature input, and release controls.*
 
-### 6. Regulatory Audit Trail
-Filterable, searchable compliance ledger with full actor attribution and CSV export.
+### 6. Regulatory Audit Trail & Compliance Ledger
+Filterable, searchable compliance ledger with full actor attribution, prior/new state transitions, and one-click CSV export.
 
 ![Regulatory Audit Trail](docs/screenshots/06-audit-trail-ledger.png)
 *Figure 6: Immutable Regulatory Audit Trail (`/audit`) with transition logs and CSV export.*
@@ -168,13 +186,13 @@ Filterable, searchable compliance ledger with full actor attribution and CSV exp
 
 ## 6. Architecture & System Design
 
-SafeRestart follows a modular, decoupled architecture where business logic is strictly separated from infrastructure adapters.
+SafeRestart follows a modular, decoupled architecture where domain business logic is strictly isolated from infrastructure and persistence adapters.
 
 ### High-Level System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph UI ["Client Presentation Layer (Next.js 15)"]
+    subgraph UI ["Client Presentation Layer (Next.js 15 App Router)"]
         CC["Operations Command Center (/)"]
         ZT["Network Topology & Detail (/zones/[id])"]
         FW["Mobile Field Worker Mode (/field)"]
@@ -193,13 +211,17 @@ flowchart TD
         DDBA["AwsDynamoDbAdapter\n(Amazon DynamoDB - Production Target)"]
     end
 
+    subgraph Hosting ["AWS Cloud Hosting & AI"]
+        AMP["AWS Amplify Hosting SSR\n(Next.js 15 Compute IAM Role - SigV4)"]
+        BEDROCK["Amazon Bedrock\n(amazon.nova-micro-v1:0 in ap-southeast-2)"]
+    end
+
     subgraph AWS ["Target AWS Cloud Infrastructure (AWS SAM)"]
         APIGW["Amazon API Gateway HTTP API"]
         LAMBDA["AWS Lambda Microservices"]
         DDB["Amazon DynamoDB\n(Single-Table Design)"]
         S3["Amazon S3\n(Encrypted Evidence Storage)"]
         EB["Amazon EventBridge\n(Domain Event Bus)"]
-        BEDROCK["Amazon Bedrock\n(Nova Micro v1 Advisory)"]
     end
 
     UI --> Core
@@ -207,11 +229,12 @@ flowchart TD
     Adapter -. Local Dev .-> LSA
     Adapter -. AWS Deployment .-> DDBA
     DDBA --> DDB
+    UI --> AMP
+    AMP --> BEDROCK
     UI --> APIGW
     APIGW --> LAMBDA
     LAMBDA --> EB
     LAMBDA --> S3
-    LAMBDA --> BEDROCK
 ```
 
 ### State Machine Lifecycle DAG
@@ -231,7 +254,7 @@ stateDiagram-v2
     RESTORED --> IDLE: Operational Normalization
 ```
 
-Detailed architectural specifications, data schemas, and mathematical heuristics are documented in [`docs/ARCHITECTURE.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/ARCHITECTURE.md).
+Detailed architectural specifications, data schemas, and mathematical heuristics are documented in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -242,20 +265,82 @@ Detailed architectural specifications, data schemas, and mathematical heuristics
 | **Framework** | Next.js (App Router) | 15.2.1 | Unified full-stack framework for server-rendered UI and REST API routes. |
 | **Language** | TypeScript | 5.8+ | Strict type safety with zero runtime surprises; strict mode enabled. |
 | **UI Library** | React | 19.0.0 | Component rendering, hooks, and responsive state synchronization. |
-| **Styling** | Tailwind CSS | 3.4.17 | Accessible light civic public-works system (`slate-50`, `#f8fafc`). |
+| **Styling** | Tailwind CSS | 3.4.17 | Accessible civic public-works light design system (`slate-50`, `#f8fafc`). |
 | **Network Topology** | React Flow (`@xyflow/react`) | 12.4.4 | Interactive hydraulic schematic displaying reservoirs, pipes, valves, and junctions. |
 | **Hydraulic Charts** | Recharts | 2.15.1 | Responsive time-series charts rendering pressure curves and chlorine depletion. |
 | **Icons** | Lucide React | 0.477.0 | Consistent iconography for hydraulic assets, status badges, and warnings. |
-| **Unit & Integration Tests**| Vitest | 3.0.7 | Fast unit and integration test runner for state machines and risk heuristics. |
-| **Cloud IaC** | AWS SAM | Specification | Infrastructure-as-code template defining AWS cloud services. |
-| **Database (Production)** | Amazon DynamoDB | Cloud Target | Serverless single-table persistence with pay-per-request billing. |
+| **Unit & Integration Tests**| Vitest | 3.0.7 | Fast unit and integration test runner (64 passing tests across 6 test suites). |
+| **Generative AI** | Amazon Bedrock | Cloud Target | Operator advisory summaries & note structuring via `amazon.nova-micro-v1:0` (`ap-southeast-2`). |
+| **Cloud Hosting** | AWS Amplify Hosting | Cloud Target | Next.js 15 SSR hosting with managed compute and IAM execution roles. |
+| **Database (Production)** | Amazon DynamoDB | Cloud Target | Serverless single-table persistence via `AwsDynamoDbAdapter`. |
 | **Event Bus (Production)**| Amazon EventBridge | Cloud Target | Asynchronous decoupling for interruption events and audit logging. |
 | **Object Store (Production)**| Amazon S3 | Cloud Target | Server-side encrypted storage for field verification photo evidence. |
-| **Generative AI** | Amazon Bedrock | Cloud Target | Operator advisory summaries & note structuring via `amazon.nova-micro-v1:0` (`ap-southeast-2`). |
+| **Cloud IaC** | AWS SAM | Specification | Infrastructure-as-code template defining AWS cloud services. |
 
 ---
 
-## 8. Installation & Local Development
+## 8. Project Structure
+
+```
+saferestart/
+├── amplify.yml                      # AWS Amplify Hosting build and deploy specification
+├── template.yaml                    # AWS SAM serverless infrastructure specification
+├── package.json                     # Scripts, dependencies, and project metadata
+├── vitest.config.ts                 # Vitest unit and integration test runner config
+├── .env.example                     # Reference environment variable configuration
+│
+├── docs/                            # In-depth architectural & evaluation documentation
+│   ├── ARCHITECTURE.md              # Canonical domain architecture and state machine spec
+│   ├── DEMO_SCRIPT.md               # 3-minute video presentation and walkthrough script
+│   ├── TESTING.md                   # Complete test strategy and verification guide
+│   ├── SUBMISSION_WRITEUP.md        # Official hackathon submission write-up
+│   ├── KNOWN_LIMITATIONS.md         # Scientific boundaries and prototype scope
+│   ├── INTERVIEW_PREPARATION.md     # Amazon technical defense and design interview prep
+│   └── screenshots/                 # Authentic application screenshots (Figures 1-7)
+│
+├── src/
+│   ├── app/                         # Next.js 15 App Router routes and API handlers
+│   │   ├── page.tsx                 # Operations Command Center (/)
+│   │   ├── field/page.tsx           # Mobile Field Worker Mode (/field)
+│   │   ├── supervisor/page.tsx      # Supervisor Review & Approval Gate (/supervisor)
+│   │   ├── audit/page.tsx           # Regulatory Audit Ledger (/audit)
+│   │   ├── zones/[id]/page.tsx      # Network Topology & Zone Details (/zones/[id])
+│   │   ├── events/[id]/page.tsx     # Restart Event Details & AI Advisory (/events/[id])
+│   │   └── api/                     # REST API handlers for zones, events, audit & Bedrock
+│   │
+│   ├── components/                  # Modular React presentation components
+│   │   ├── dashboard/               # Command Center dashboard components
+│   │   ├── field/                   # Mobile field checklist and measurement inputs
+│   │   ├── supervisor/              # Supervisor review gate and authorization forms
+│   │   ├── audit/                   # Audit log view and CSV export controls
+│   │   ├── copilot/                 # Bedrock field report structuring widget
+│   │   ├── zone/                    # React Flow topology graph and Recharts time-series
+│   │   └── ui/                      # Shared design system components (badges, banners, cards)
+│   │
+│   └── lib/                         # Core domain logic, adapters, and contracts
+│       ├── contracts/               # Formal TypeScript repository and store interfaces
+│       ├── adapters/                # Local in-memory and AWS DynamoDB persistence adapters
+│       ├── state-machine.ts         # Validated state machine DAG and guard functions
+│       ├── risk-engine.ts           # Deterministic multi-factor hydraulic risk rules
+│       ├── aws-client.ts            # Amazon Bedrock client (SigV4 IAM role & bearer token)
+│       ├── copilot.ts               # Bedrock Converse API structuring and offline fallback
+│       ├── synthetic-data.ts        # Deterministic 5-zone distribution data generator
+│       └── store.ts                 # Central singleton simulation store and event bus
+│
+├── tests/                           # Vitest automated test suites (64 passing tests)
+│   ├── unit/                        # Risk engine, state machine, and adapter unit tests
+│   ├── integration/                 # End-to-end 15-scenario simulation workflow tests
+│   ├── aws-integration.test.ts      # Bedrock auth, SigV4 IAM roles, and safety invariant tests
+│   └── copilot.test.ts              # Bedrock Copilot prompt sanitization and fallback tests
+│
+└── scripts/                         # Operational verification utilities
+    ├── verify-aws.mjs               # Standalone AWS Bedrock live endpoint verification
+    └── validate-docs.mjs            # Automated markdown link and image validator
+```
+
+---
+
+## 9. Installation & Local Development
 
 ### Prerequisites
 
@@ -292,22 +377,22 @@ Detailed architectural specifications, data schemas, and mathematical heuristics
 
 ---
 
-## 9. Configuration & Environment Variables
+## 10. Configuration & Environment Variables
 
-All environment variables have safe fallback defaults for local execution. See [`.env.example`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/.env.example):
+All environment variables have safe fallback defaults for local execution. See [`.env.example`](.env.example):
 
 ```ini
 # Node Environment
 NODE_ENV=development
 
-# AWS Region (Defaults to ap-southeast-2 Sydney, matching verified Bedrock playground)
+# AWS Region (Defaults to ap-southeast-2 Sydney, matching verified Bedrock deployment)
 AWS_REGION=ap-southeast-2
 
 # Amazon Bedrock Model Configuration (Defaults to amazon.nova-micro-v1:0)
 BEDROCK_MODEL_ID=amazon.nova-micro-v1:0
 
 # Production AWS IAM Role / Default Credential Provider Chain
-# In AWS Amplify Hosting or ECS/Lambda, role-based SigV4 auth is automatically discovered.
+# In AWS Amplify Hosting SSR or ECS/Lambda, role-based SigV4 auth is automatically discovered.
 # Static keys or bearer tokens are NOT required in production.
 # AWS_USE_IAM_ROLE=true
 
@@ -336,9 +421,9 @@ When AWS credentials are omitted, SafeRestart automatically routes data through 
 
 ---
 
-## 10. Testing, Quality & Build Verification
+## 11. Testing, Quality & Build Verification
 
-SafeRestart adheres to strict engineering quality standards. Five verification commands are available:
+SafeRestart adheres to strict engineering quality standards. Six verification commands are available:
 
 ```bash
 # 1. Run ESLint (must pass with 0 warnings and 0 errors)
@@ -353,16 +438,19 @@ npm test
 # 4. Standalone live AWS Bedrock integration diagnostic
 npm run verify:aws
 
-# 5. Production Next.js build compilation
+# 5. Production Next.js build compilation (all 18 routes compiled)
 npm run build
+
+# 6. Documentation link and screenshot asset validation
+node scripts/validate-docs.mjs
 ```
 
 ### Test Coverage Highlights
 
-- `tests/unit/risk-engine.test.ts`: Verifies mathematical boundary conditions, negative-pressure ingress penalties, aged cast-iron risk factors, and missing telemetry deductions.
-- `tests/unit/state-machine.test.ts`: Enforces state transition invariants, preventing restarts without prior field verification or unassigned supervisor sign-offs.
-- `tests/unit/adapters.test.ts`: Validates persistence contract adherence between local in-memory stores and cloud interfaces.
-- `tests/integration/simulation-workflow.test.ts`: Executes the complete end-to-end lifecycle from interruption to restoration across multiple synthetic zones.
+- `tests/risk-engine.test.ts`: Verifies mathematical boundary conditions, negative-pressure ingress penalties, aged cast-iron risk factors, and missing telemetry deductions.
+- `tests/state-machine.test.ts`: Enforces state transition invariants, preventing restarts without prior field verification or unassigned supervisor sign-offs.
+- `tests/adapters.test.ts`: Validates persistence contract adherence between local in-memory stores and cloud interfaces.
+- `tests/simulation-workflow.test.ts`: Executes the complete end-to-end lifecycle from interruption to restoration across multiple synthetic zones (15 scenarios).
 - `tests/aws-integration.test.ts`: 21 comprehensive integration and safety invariant tests verifying:
   - AWS SDK default credential provider chain for Amplify SSR compute IAM execution roles (SigV4).
   - Bedrock SDK bearer-token auth (`httpBearerAuth`) for local development.
@@ -371,57 +459,36 @@ npm run build
   - Strict safety guarantees that AI explanations never override deterministic safety engine `HOLD` decisions.
 - `tests/copilot.test.ts`: Validates field report structuring, operator guidance, prompt injection sanitization, and fallback behavior.
 
-For detailed testing documentation, see [`docs/TESTING.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/TESTING.md).
+For detailed testing documentation, see [`docs/TESTING.md`](docs/TESTING.md).
 
 ---
 
-## 11. 3-Minute Demonstration Script
+## 12. AWS Architecture & Deployment Guide
 
-For hackathon judges and evaluators, a deterministic 3-minute walkthrough script is provided in [`docs/DEMO_SCRIPT.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/DEMO_SCRIPT.md).
-
-### Summary Walkthrough
-
-1. **Command Center (`/`)**:
-   - Observe the prominent banner: `DEMO MODE — SIMULATED NETWORK DATA`.
-   - Inspect **Zone 1 (Central Business)** on **HOLD** due to an active leak on pipe `Z1-P-104` and missing chlorine data.
-   - Inspect **Zone 4 (Valley Park)** in **Awaiting Approval** state.
-2. **Network Topology (`/zones/zone-1`)**:
-   - Inspect the interactive React Flow network topology.
-   - Click node `Z1-JNC-01` to view node pressure and elevation in the inspection drawer.
-   - Review the dashed red pipe `Z1-P-104` marked `LEAK SUSPECTED`.
-   - View the Risk Engine card showing `ACTION: HOLD` and missing evidence requirements.
-   - Click **Explain Decision with AI** to view Bedrock advisory synthesis.
-3. **Field Technician Verification (`/field`)**:
-   - Select `Central Business & Historic District`.
-   - Click judge quick preset: **Load Passing Sample (0.45 mg/L)**.
-   - Click **Submit Evidence for Supervisor Review**.
-4. **Supervisor Approval Gate (`/supervisor`)**:
-   - Select the updated restart request.
-   - Observe that the Approval Gate is unlocked with green passing badges for chlorine, pressure, and flushing.
-   - Check the compliance confirmation box and click **Authorize Drinking Water Service Restoration**.
-5. **Regulatory Audit Trail (`/audit`)**:
-   - View the newly committed `TRANSITION_AWAITING_APPROVAL_TO_RESTORED` record with actor name and timestamp.
-   - Click **Export Audit Trail (CSV)** to download compliance documentation.
-
----
-
-## 12. AWS Architecture & Integration Status
-
-SafeRestart is architected following cloud-native, serverless AWS best practices. We maintain transparent disclosure of what is implemented locally versus the AWS deployment blueprint:
+SafeRestart is architected following cloud-native, serverless AWS best practices:
 
 | AWS Service | Architectural Role | Implementation Status | Verification Artifact |
 | :--- | :--- | :--- | :--- |
-| **Amazon API Gateway** | HTTP API frontend routing REST requests to serverless backends | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **AWS Lambda** | Stateless compute for risk engine, event processing, and audit recording | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **Amazon DynamoDB** | Single-table persistence for zones, restart events, and immutable audit logs | **Active in Local Adapter** / **IaC Specified** | [`src/lib/adapters/`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/adapters/), [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **Amazon S3** | Encrypted object storage for field verification photo evidence | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **Amazon EventBridge** | Custom domain event bus for asynchronous interruption orchestration | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
-| **Amazon Bedrock** | GenAI advisory synthesis & note structuring powered by `amazon.nova-micro-v1:0` (`ap-southeast-2`) | **Implemented** (SDK Route with deterministic offline fallback and live verification) | [`src/lib/aws-client.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/aws-client.ts), [`src/app/api/bedrock/explain/route.ts`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock/explain/route.ts) |
-| **AWS IAM** | Least-privilege role policies for execution boundaries | **IaC Specified** (AWS SAM) | [`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml) |
+| **AWS Amplify Hosting** | Next.js 15 SSR hosting with compute IAM execution role (SigV4) | **Production Target** | [`amplify.yml`](amplify.yml) |
+| **Amazon Bedrock** | GenAI advisory synthesis & note structuring via `amazon.nova-micro-v1:0` (`ap-southeast-2`) | **Implemented** (Live route with fallback) | [`src/lib/aws-client.ts`](src/lib/aws-client.ts), [`src/app/api/bedrock/explain/route.ts`](src/app/api/bedrock/explain/route.ts) |
+| **Amazon DynamoDB** | Single-table persistence for zones, restart events, and immutable audit logs | **Active in Local Adapter** / **Cloud Adapter Ready** | [`src/lib/adapters/dynamodb-adapter.ts`](src/lib/adapters/dynamodb-adapter.ts), [`template.yaml`](template.yaml) |
+| **Amazon API Gateway** | HTTP API frontend routing REST requests to serverless backends | **IaC Specified** (AWS SAM) | [`template.yaml`](template.yaml) |
+| **AWS Lambda** | Stateless compute for risk engine, event processing, and audit recording | **IaC Specified** (AWS SAM) | [`template.yaml`](template.yaml) |
+| **Amazon S3** | Encrypted object storage for field verification photo evidence | **IaC Specified** (AWS SAM) | [`template.yaml`](template.yaml) |
+| **Amazon EventBridge** | Custom domain event bus for asynchronous interruption orchestration | **IaC Specified** (AWS SAM) | [`template.yaml`](template.yaml) |
+| **AWS IAM** | Least-privilege role policies for execution boundaries | **IaC Specified** (AWS SAM) | [`template.yaml`](template.yaml) |
 
-### Deploying to AWS via SAM
+### Deploying to AWS Amplify Hosting
 
-When ready for AWS cloud deployment:
+1. Connect your repository to AWS Amplify Hosting in the AWS Management Console.
+2. Select Next.js 15 with SSR compute support.
+3. Attach an IAM execution role to Amplify SSR compute with `bedrock:InvokeModel` permissions.
+4. Set environment variables:
+   - `AWS_REGION`: `ap-southeast-2`
+   - `BEDROCK_MODEL_ID`: `amazon.nova-micro-v1:0`
+5. Deploy using the included [`amplify.yml`](amplify.yml) build specification.
+
+### Deploying Serverless Stack via AWS SAM
 
 ```bash
 # 1. Validate the SAM template
@@ -434,12 +501,7 @@ sam build
 sam deploy --guided
 ```
 
-This provisions:
-- `SafeRestartHttpApi`: Amazon API Gateway HTTP API
-- `ZonesTable`, `RestartEventsTable`, `AuditTrailTable`: Pay-per-request DynamoDB tables with Point-in-Time Recovery and SSE enabled
-- `EvidenceBucket`: Amazon S3 bucket with public access blocked and AES-256 SSE
-- `SafeRestartEventBus`: Amazon EventBridge event bus
-- Least-privilege IAM execution roles for each handler
+This provisions `SafeRestartHttpApi`, `ZonesTable`, `RestartEventsTable`, `AuditTrailTable`, `EvidenceBucket`, `SafeRestartEventBus`, and least-privilege IAM roles.
 
 ---
 
@@ -459,7 +521,7 @@ SafeRestart includes a deterministic synthetic telemetry generator modeling **5 
 - **Physical Plausibility**: Telemetry calculations adhere to hydraulic principles: pressure drops when inflow ceases; chlorine decays exponentially as water age increases; negative pressures flag external contamination vulnerability.
 - **No Masquerading**: Telemetry streams are explicitly marked `SIMULATED` across every screen to prevent confusion with actual utility operations.
 
-See [`docs/KNOWN_LIMITATIONS.md`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/docs/KNOWN_LIMITATIONS.md) for complete details on mathematical assumptions and operational boundaries.
+See [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for complete details on mathematical assumptions and operational boundaries.
 
 ---
 
@@ -467,9 +529,11 @@ See [`docs/KNOWN_LIMITATIONS.md`](file:///Users/bharathadithya/.gemini/antigravi
 
 In compliance with hackathon transparency guidelines:
 
-1. **AI Development Assistance**: AI coding assistants (including Anthropic Claude models and Google Antigravity) were utilized as pair-programming tools during development for drafting TypeScript interfaces, writing Vitest test cases, crafting Tailwind styling, and authoring technical documentation. All generated code and documentation were manually reviewed, edited, and validated by the maintainer.
-2. **Application-Level AI (Amazon Bedrock)**: SafeRestart integrates Amazon Bedrock (`amazon.nova-micro-v1:0` in `ap-southeast-2`) through [`/api/bedrock/explain`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/bedrock/explain/route.ts) and [`/api/copilot/structure-report`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/app/api/copilot/structure-report/route.ts). Bedrock's role is strictly limited to **synthesizing natural-language operator briefings and extracting structured parameters from informal field briefings**.
+1. **AI Development Assistance**: AI coding assistants (including Google Antigravity and Gemini coding agents) were utilized as pair-programming tools during development for drafting TypeScript interfaces, writing Vitest test cases, crafting Tailwind styling, and authoring technical documentation. All generated code and documentation were manually reviewed, edited, and validated by the maintainer.
+2. **Application-Level AI (Amazon Bedrock)**: SafeRestart integrates Amazon Bedrock (`amazon.nova-micro-v1:0` in `ap-southeast-2`) through [`/api/bedrock/explain`](src/app/api/bedrock/explain/route.ts) and [`/api/copilot/structure-report`](src/app/api/copilot/structure-report/route.ts). Bedrock's role is strictly limited to **synthesizing natural-language operator briefings and extracting structured parameters from informal field briefings**.
 3. **Deterministic Authority Boundary**: **The LLM never makes authoritative safety or restoration decisions.** All risk scoring, threshold evaluations, and state machine transitions are executed exclusively by deterministic TypeScript algorithms. If Bedrock is unreachable or credentials are not supplied, the system seamlessly falls back to local deterministic engineering heuristics without degradation. Every AI response is transparently labelled with its origin (`source: 'BEDROCK_LIVE'` or `'LOCAL_FALLBACK'`).
+
+See [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) for complete details.
 
 ---
 
@@ -494,4 +558,4 @@ In compliance with hackathon transparency guidelines:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). Please see the [`LICENSE`](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).

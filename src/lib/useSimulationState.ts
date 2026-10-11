@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WaterZone, RestartEvent, AuditEvent, VerificationSubmission, SupervisorDecision, ConfirmedFieldReport } from '@/types';
+import { createInitialZones } from '@/lib/synthetic-data';
 
 export interface SimulationStateData {
   zones: WaterZone[];
@@ -11,13 +12,25 @@ export interface SimulationStateData {
 }
 
 export function useSimulationState(pollIntervalMs = 3000) {
-  const [data, setData] = useState<SimulationStateData>({
-    zones: [],
-    restartEvents: {},
-    auditTrail: [],
-    currentSimulatedTime: new Date().toISOString(),
+  const [data, setData] = useState<SimulationStateData>(() => {
+    try {
+      const init = createInitialZones();
+      return {
+        zones: init.zones,
+        restartEvents: init.events,
+        auditTrail: init.audits,
+        currentSimulatedTime: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        zones: [],
+        restartEvents: {},
+        auditTrail: [],
+        currentSimulatedTime: new Date().toISOString(),
+      };
+    }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchState = useCallback(async () => {

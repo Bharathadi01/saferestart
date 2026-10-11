@@ -88,7 +88,7 @@ export function AuditLogView({ audits, zones }: AuditLogViewProps) {
                 Safety Audit Trail
               </h1>
               <p className="text-sm text-slate-600 mt-0.5">
-                Permanent log of all status transitions, field verifications, and supervisor authorizations.
+                Sequential operational record of status transitions, field verifications, and supervisor authorizations.
               </p>
             </div>
           </div>

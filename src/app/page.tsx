@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
-import { FieldWorkerMode } from '@/components/field/FieldWorkerMode';
+import { CommandCenter } from '@/components/dashboard/CommandCenter';
 import { useSimulationState } from '@/lib/useSimulationState';
 
 export default function HomePage() {
@@ -11,15 +11,16 @@ export default function HomePage() {
   const {
     zones,
     restartEvents,
+    auditTrail,
     loading,
-    submitVerification,
     triggerInterruption,
     advanceSimulation,
     resetSimulation,
+    requestRestart,
   } = useSimulationState(3000);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Navigation
         lang={lang}
         onToggleLang={() => setLang(lang === 'en' ? 'ta' : 'en')}
@@ -28,18 +29,18 @@ export default function HomePage() {
         onTriggerInterruption={() => triggerInterruption('zone-5')}
       />
 
-      <div className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
-        {loading ? (
+      <div className="flex-1 max-w-6xl mx-auto px-4 py-6 sm:py-8 w-full">
+        {loading && zones.length === 0 ? (
           <div className="p-16 text-center text-xs text-slate-500 animate-pulse">
-            Loading water zones...
+            Loading municipal water network operations...
           </div>
         ) : (
-          <FieldWorkerMode
+          <CommandCenter
             zones={zones}
             events={restartEvents}
-            onVerificationSubmitted={submitVerification}
-            lang={lang}
-            onToggleLang={() => setLang(lang === 'en' ? 'ta' : 'en')}
+            recentAudits={auditTrail}
+            onTriggerInterruption={triggerInterruption}
+            onInitiateRestart={requestRestart}
           />
         )}
       </div>

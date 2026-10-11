@@ -23,6 +23,8 @@ export function StatusBadge({ state, showDot = true, size = 'md' }: StatusBadgeP
 
   return (
     <span
+      role="status"
+      aria-label={`Status: ${config.label}`}
       className={`inline-flex items-center gap-1.5 rounded-md font-sans font-medium border tracking-normal whitespace-nowrap transition-colors shadow-2xs ${config.color} ${sizeClasses[size]}`}
     >
       {showDot && (

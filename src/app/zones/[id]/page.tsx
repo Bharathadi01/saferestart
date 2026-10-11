@@ -4,6 +4,7 @@ import React, { use } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/ui/Navigation';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { NextActionCard } from '@/components/ui/NextActionCard';
 import { NetworkGraph } from '@/components/zone/NetworkGraph';
 import { TelemetryCharts } from '@/components/zone/TelemetryCharts';
 import { RiskPanel } from '@/components/zone/RiskPanel';
@@ -125,6 +126,73 @@ export default function ZoneDetailPage({
             )}
           </div>
         </div>
+
+        {/* Zone Next Action Card */}
+        <NextActionCard
+          situation={
+            zone.operationalState === 'HOLD'
+              ? `${zone.name} (${zone.code}) distribution supply is stopped. Negative pressure occurred during interruption; physical safety verification must be completed before water recharge.`
+              : zone.operationalState === 'AWAITING_APPROVAL'
+              ? `${zone.name} (${zone.code}) has satisfied all physical field scouring and disinfectant tests. Water restoration is held pending supervisor sign-off.`
+              : zone.operationalState === 'VERIFICATION_REQUIRED'
+              ? `${zone.name} (${zone.code}) line flushing is verified; final free chlorine residual test and photographic record are required.`
+              : `${zone.name} (${zone.code}) is operating normally with continuous pressurized drinking water supply.`
+          }
+          safetyStatus={
+            zone.operationalState === 'HOLD' || zone.operationalState === 'INTERRUPTED'
+              ? 'HOLD'
+              : zone.operationalState === 'AWAITING_APPROVAL'
+              ? 'PROCEED'
+              : zone.operationalState === 'VERIFICATION_REQUIRED'
+              ? 'CAUTION'
+              : 'STABLE'
+          }
+          safetyLabel={
+            zone.operationalState === 'HOLD' || zone.operationalState === 'INTERRUPTED'
+              ? 'RESTRICTION: OPERATIONAL HOLD ACTIVE'
+              : zone.operationalState === 'AWAITING_APPROVAL'
+              ? 'READY FOR SUPERVISOR SIGN-OFF'
+              : zone.operationalState === 'VERIFICATION_REQUIRED'
+              ? 'FIELD VERIFICATION IN PROGRESS'
+              : 'SERVICE RESTORED & SAFE'
+          }
+          responsibleRole={
+            zone.operationalState === 'AWAITING_APPROVAL'
+              ? 'Chief Water Works Engineer / Operations Supervisor'
+              : zone.operationalState === 'HOLD' || zone.operationalState === 'VERIFICATION_REQUIRED' || zone.operationalState === 'INTERRUPTED'
+              ? 'Certified Field Technician'
+              : 'Continuous Quality Monitoring'
+          }
+          evidenceNotes={[
+            `Observed hydraulic pressure: ${zone.currentTelemetry.pressurePsi.toFixed(1)} psi (Floor: 15 psi)`,
+            `Free chlorine residual: ${zone.currentTelemetry.chlorineMgL !== undefined ? `${zone.currentTelemetry.chlorineMgL.toFixed(2)} mg/L` : 'Unverified / Missing'}`,
+            `Evidence completeness: ${zone.evidenceCompletenessPercent}%`,
+          ]}
+          nextAction={
+            zone.operationalState === 'AWAITING_APPROVAL'
+              ? 'Open the Supervisor Authorization gate to review field evidence and sign the restoration release.'
+              : zone.operationalState === 'HOLD' || zone.operationalState === 'INTERRUPTED'
+              ? 'Keep supply valves closed. Field technician must complete scouring and verify >= 0.20 mg/L chlorine residual.'
+              : zone.operationalState === 'VERIFICATION_REQUIRED'
+              ? 'Complete free chlorine disinfectant test in field mode.'
+              : 'Maintain standard SCADA pressure monitoring and routine bacteriological sampling.'
+          }
+          actionButton={
+            zone.operationalState === 'AWAITING_APPROVAL'
+              ? {
+                  label: 'Open Supervisor Review',
+                  href: '/supervisor',
+                  variant: 'teal',
+                }
+              : zone.operationalState === 'HOLD' || zone.operationalState === 'VERIFICATION_REQUIRED'
+              ? {
+                  label: 'Open Field Checklist',
+                  href: '/field',
+                  variant: 'primary',
+                }
+              : undefined
+          }
+        />
 
         {/* Top Operational Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

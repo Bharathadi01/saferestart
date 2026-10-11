@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  LayoutDashboard,
   ClipboardCheck,
   ShieldCheck,
   History,
@@ -52,24 +53,31 @@ export function Navigation({
   const navLinks = [
     {
       href: '/',
-      label: lang === 'ta' ? 'களப் பணியாளர்' : 'Field Worker',
+      label: lang === 'ta' ? 'செயல்பாட்டுக் கண்ணோட்டம்' : 'Operations overview',
+      desc: lang === 'ta' ? 'வலையமைப்பு நிலை' : 'Network Triage',
+      icon: LayoutDashboard,
+      isActive: pathname === '/',
+    },
+    {
+      href: '/field',
+      label: lang === 'ta' ? 'களப் பணி' : 'Field work',
       desc: lang === 'ta' ? 'பாதுகாப்பு சரிபார்ப்பு' : 'Safety Checklist',
       icon: ClipboardCheck,
-      isActive: pathname === '/' || pathname === '/field',
+      isActive: pathname === '/field',
     },
     {
       href: '/supervisor',
-      label: lang === 'ta' ? 'மேற்பார்வையாளர்' : 'Supervisor Review',
+      label: lang === 'ta' ? 'மேற்பார்வையாளர் ஆய்வு' : 'Supervisor review',
       desc: lang === 'ta' ? 'ஒப்புதல் அறை' : 'Approval Gate',
       icon: ShieldCheck,
-      isActive: pathname === '/supervisor',
+      isActive: pathname.startsWith('/supervisor'),
     },
     {
       href: '/audit',
-      label: lang === 'ta' ? 'பதிவேடு' : 'Audit Log',
-      desc: lang === 'ta' ? 'நிகழ்வு வரலாறு' : 'Activity History',
+      label: lang === 'ta' ? 'தணிக்கை வரலாறு' : 'Audit history',
+      desc: lang === 'ta' ? 'நிகழ்வு வரலாறு' : 'Compliance Ledger',
       icon: History,
-      isActive: pathname === '/audit',
+      isActive: pathname.startsWith('/audit'),
     },
   ];
 
@@ -237,19 +245,28 @@ export function Navigation({
       )}
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden border-t border-slate-200 px-3 py-2 flex justify-around bg-white">
+      <div className="md:hidden border-t border-slate-200 px-2 py-1.5 flex justify-around bg-white">
         {navLinks.map((item) => {
           const Icon = item.icon;
+          const mobileLabel =
+            item.href === '/'
+              ? (lang === 'ta' ? 'கண்ணோட்டம்' : 'Overview')
+              : item.href === '/field'
+              ? (lang === 'ta' ? 'களப் பணி' : 'Field')
+              : item.href === '/supervisor'
+              ? (lang === 'ta' ? 'மேற்பார்வை' : 'Supervisor')
+              : (lang === 'ta' ? 'தணிக்கை' : 'Audit');
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center p-1 text-xs ${
-                item.isActive ? 'text-sky-700 font-bold' : 'text-slate-500'
+              className={`flex flex-col items-center py-1 px-2 rounded-md text-[11px] transition-colors ${
+                item.isActive ? 'text-slate-900 font-bold bg-slate-100' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Icon className="w-5 h-5 mb-0.5" />
-              <span>{item.label}</span>
+              <Icon className="w-4 h-4 mb-0.5" />
+              <span>{mobileLabel}</span>
             </Link>
           );
         })}

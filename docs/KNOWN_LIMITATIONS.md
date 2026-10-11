@@ -21,16 +21,16 @@ To maintain technical integrity and scientific credibility for judges, operators
 
 ## 3. Persistence & Cloud Infrastructure Status
 
-- **Phase 2 Local Persistence**: In the current local development build, data is managed by [`LocalSafeRestartAdapter`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/src/lib/adapters/local-store-adapter.ts) in memory. Restarting the local Node.js process resets state to the deterministic initial baseline.
-- **Target Cloud Implementation**: An infrastructure-as-code template ([`template.yaml`](file:///Users/bharathadithya/.gemini/antigravity/scratch/saferestart/template.yaml)) is provided for AWS SAM deployment (Amazon DynamoDB tables, EventBridge event bus, and S3 evidence bucket). These resources have not been provisioned in the live cloud during this local evaluation phase.
+- **Phase 2 Local Persistence**: In the default local development build, data is managed by [`LocalSafeRestartAdapter`](../src/lib/adapters/local-store-adapter.ts) in memory. Restarting the local Node.js process resets state to the deterministic initial baseline.
+- **Target Cloud Implementation**: An infrastructure-as-code template ([`template.yaml`](../template.yaml)) is provided for AWS SAM deployment (Amazon DynamoDB tables, EventBridge event bus, and S3 evidence bucket). An [`AwsDynamoDbAdapter`](../src/lib/adapters/dynamodb-adapter.ts) is implemented in TypeScript for cloud DynamoDB connectivity.
 - **Simulated S3 URI References**: Field photograph attachments in the current local mode use simulated URI references (`s3://saferestart-evidence/photos/...`) rather than live multi-part S3 pre-signed upload URLs.
 
 ---
 
 ## 4. Artificial Intelligence & Generative Models
 
-- **Decision Gating Strictness**: Large language models (Amazon Bedrock or local heuristic synthesis) are strictly restricted to advisory synthesis, operator note structuring, and directive formatting. Generative AI is architecturally prohibited from approving service restoration, clearing a HOLD, or modifying state machine transitions.
-- **Local Fallback Heuristics**: When AWS credentials or Bedrock models are not actively configured in `.env.local`, the application falls back to a deterministic rule-based engineering explainer. No remote API call is attempted without configured credentials.
+- **Decision Gating Strictness**: Large language models (Amazon Bedrock Nova Micro or local heuristic synthesis) are strictly restricted to advisory synthesis, operator note structuring, and directive formatting. Generative AI is architecturally prohibited from approving service restoration, clearing a HOLD, or modifying state machine transitions.
+- **Local Fallback Heuristics**: When AWS credentials or Bedrock permissions are not actively configured in `.env.local`, the application falls back to a deterministic rule-based engineering explainer. No remote API call is attempted without configured credentials.
 
 ---
 

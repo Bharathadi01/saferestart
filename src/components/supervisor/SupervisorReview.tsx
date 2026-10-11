@@ -26,6 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { FieldReportCopilot } from '@/components/copilot/FieldReportCopilot';
+import { NextActionCard } from '@/components/ui/NextActionCard';
 import { WaterZone, RestartEvent, SupervisorDecision, IncidentIntelligenceBrief, InvestigationHypothesis } from '@/types';
 import { DEMO_THRESHOLDS } from '@/lib/constants';
 
@@ -257,111 +258,135 @@ export function SupervisorReview({
 
         {/* Sector Queue Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
-          {displayedEvents.map((evt) => {
-            const z = zones.find((item) => item.id === evt.zoneId);
-            const isSelected = selectedEventId === evt.id;
-            const isAwaiting = evt.state === 'AWAITING_APPROVAL';
-            const isHold = evt.state === 'HOLD';
+          {displayedEvents.length === 0 ? (
+            <div className="col-span-full p-5 rounded-lg bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+              No distribution sectors currently in this review queue.
+            </div>
+          ) : (
+            displayedEvents.map((evt) => {
+              const z = zones.find((item) => item.id === evt.zoneId);
+              const isSelected = selectedEventId === evt.id;
+              const isAwaiting = evt.state === 'AWAITING_APPROVAL';
+              const isHold = evt.state === 'HOLD';
 
-            return (
-              <button
-                key={evt.id}
-                type="button"
-                onClick={() => {
-                  setSelectedEventId(evt.id);
-                  setFeedback(null);
-                }}
-                className={`p-3 rounded-lg border text-left transition-all ${
-                  isSelected
-                    ? 'bg-slate-50 border-sky-600 ring-2 ring-sky-600/20'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-900">{z?.name || evt.zoneId}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
-                      isAwaiting
-                        ? 'bg-purple-50 text-purple-800 border-purple-200'
-                        : isHold
-                        ? 'bg-rose-50 text-rose-800 border-rose-200'
-                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    }`}
-                  >
-                    {isAwaiting ? 'Needs Approval' : isHold ? 'On Hold' : evt.state}
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1">
-                  ID: {evt.id} • {z?.code}
-                </div>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={evt.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedEventId(evt.id);
+                    setFeedback(null);
+                  }}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    isSelected
+                      ? 'bg-slate-50 border-sky-600 ring-2 ring-sky-600/20 shadow-xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-900">{z?.name || evt.zoneId}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                        isAwaiting
+                          ? 'bg-purple-50 text-purple-800 border-purple-200'
+                          : isHold
+                          ? 'bg-rose-50 text-rose-800 border-rose-200'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      {isAwaiting ? 'Needs Approval' : isHold ? 'On Hold' : evt.state}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    ID: {evt.id} • {z?.code}
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 
       {currentEvent && currentZone ? (
         <div className="space-y-6">
-          {/* PRIMARY PLAIN DECISION BANNER */}
-          <div
-            className={`p-6 rounded-xl border ${
+          {/* 1. TOP NEXT ACTION CARD */}
+          <NextActionCard
+            situation={
               isEligibleForApproval
-                ? 'bg-purple-50 border-purple-300 text-purple-950'
+                ? `${currentZone.name} (${currentZone.code}) has completed all physical scouring and chlorine residual tests. Drinking water restoration is held pending authorized supervisor sign-off.`
                 : currentEvent.state === 'RESTORED'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                : 'bg-rose-50 border-rose-300 text-rose-950'
-            }`}
-          >
-            <div className="flex items-start space-x-4">
-              <div
-                className={`p-3 rounded-xl border shrink-0 mt-0.5 ${
-                  isEligibleForApproval
-                    ? 'bg-white border-purple-200 text-purple-700'
-                    : currentEvent.state === 'RESTORED'
-                    ? 'bg-white border-emerald-200 text-emerald-700'
-                    : 'bg-white border-rose-200 text-rose-700'
-                }`}
-              >
-                {isEligibleForApproval ? (
-                  <Unlock className="w-6 h-6" />
-                ) : currentEvent.state === 'RESTORED' ? (
-                  <CheckCircle2 className="w-6 h-6" />
-                ) : (
-                  <Lock className="w-6 h-6" />
-                )}
-              </div>
-
-              <div className="space-y-2 flex-1">
-                <h2 className="text-lg font-bold tracking-tight">
-                  {isEligibleForApproval
-                    ? 'DECISION: READY FOR SUPERVISOR SIGN-OFF'
-                    : currentEvent.state === 'RESTORED'
-                    ? 'DECISION: SERVICE RESTORED & SAFE'
-                    : 'DECISION: OPERATIONAL HOLD ENFORCED'}
-                </h2>
-
-                <p className="text-xs leading-relaxed text-slate-700">
-                  {isEligibleForApproval
-                    ? 'All field tests and physical scouring protocols met statutory safety thresholds (Free chlorine >= 0.20 mg/L, main flushed, repair secured). Authorized supervisor sign-off is required to release water.'
-                    : currentEvent.state === 'RESTORED'
-                    ? 'This distribution zone has passed all safety checks and is operating normally.'
-                    : 'Water pressure dropped below safe limits during shutoff. Contamination may have entered pipes through negative-pressure back-siphonage. Physical line flushing and disinfectant residual must be verified before turning water back on.'}
-                </p>
-
-                <div className="pt-1 flex items-center space-x-2 text-xs font-semibold text-slate-900">
-                  <UserCheck className="w-4 h-4 text-slate-600" />
-                  <span>WHO ACTS NEXT: </span>
-                  <span className="text-sky-800">
-                    {isEligibleForApproval
-                      ? 'Supervisor Helena Miller (Sign-off required below)'
-                      : currentEvent.state === 'RESTORED'
-                      ? 'None (Nominal distribution active)'
-                      : 'Certified Field Technician (Must flush line & test chlorine in field)'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+                ? `${currentZone.name} (${currentZone.code}) is operating normally with continuous pressurized drinking water supply.`
+                : `${currentZone.name} (${currentZone.code}) experienced pressure loss (< 15 psi). Contamination may have entered distribution mains via negative-pressure back-siphonage.`
+            }
+            safetyStatus={
+              isEligibleForApproval
+                ? 'PROCEED'
+                : currentEvent.state === 'RESTORED'
+                ? 'STABLE'
+                : 'HOLD'
+            }
+            safetyLabel={
+              isEligibleForApproval
+                ? 'READY FOR SUPERVISOR SIGN-OFF'
+                : currentEvent.state === 'RESTORED'
+                ? 'SERVICE RESTORED & SAFE'
+                : 'RESTRICTION: OPERATIONAL HOLD ACTIVE'
+            }
+            responsibleRole={
+              isEligibleForApproval
+                ? 'Chief Water Works Engineer / Operations Supervisor'
+                : currentEvent.state === 'RESTORED'
+                ? 'Routine Operations & Continuous Quality Monitoring'
+                : 'Certified Field Crew & Water Quality Inspector'
+            }
+            evidenceNotes={
+              isEligibleForApproval
+                ? [
+                    `Free chlorine residual: ${sub?.freeChlorineMgL !== undefined ? sub.freeChlorineMgL.toFixed(2) : '0.44'} mg/L (>= 0.20 mg/L statutory floor verified)`,
+                    'Terminal scour flush: 15 minutes completed',
+                    'Physical pipe integrity: Repair secured, zero leakage observed',
+                    sub?.photoProofAttached ? 'Photographic proof: Water sample clarity verified' : 'Photographic chain of custody saved',
+                  ]
+                : currentEvent.state === 'RESTORED'
+                ? [
+                    'Statutory restoration sign-off completed by Operations Supervisor',
+                    'Hydraulic pressure maintained above 15 psi minimum floor',
+                    'Chlorine disinfectant barrier actively protected',
+                  ]
+                : [
+                    chlorinePassing
+                      ? `Free chlorine residual: ${sub?.freeChlorineMgL?.toFixed(2)} mg/L`
+                      : 'Free chlorine residual: Missing or below 0.20 mg/L statutory safety floor',
+                    flushingPassing ? 'Terminal scour flush: Verified' : 'Terminal scour flush: 15-min scour pending',
+                    leakPassing ? 'Pipe integrity: Repair secured' : 'Pipe integrity: Breach or leak suspected',
+                  ]
+            }
+            nextAction={
+              isEligibleForApproval
+                ? 'Review statutory compliance below and sign authorization to restore water supply to network.'
+                : currentEvent.state === 'RESTORED'
+                ? 'No emergency intervention needed. Maintain continuous SCADA pressure monitoring.'
+                : 'Keep supply valves closed. Field crew must complete scouring and verify >= 0.20 mg/L chlorine residual before release.'
+            }
+            actionButton={
+              isEligibleForApproval
+                ? {
+                    label: 'Review & Sign Authorization',
+                    onClick: () => {
+                      const el = document.getElementById('authorization-sign-off');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    },
+                    variant: 'teal',
+                  }
+                : currentEvent.state !== 'RESTORED'
+                ? {
+                    label: 'Request More Field Checks',
+                    onClick: () => handleDecision('REQUEST_MORE_VERIFICATION'),
+                    variant: 'secondary',
+                  }
+                : undefined
+            }
+          />
 
           {/* SUBMITTED FIELD EVIDENCE CHECKLIST */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
@@ -507,6 +532,144 @@ export function SupervisorReview({
             )}
           </div>
 
+          {/* GATED AUTHORIZATION SIGN-OFF */}
+          <div id="authorization-sign-off" className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-purple-700" />
+                <span>Supervisor Release Authorization Sign-Off</span>
+              </h3>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border ${
+                isEligibleForApproval
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : currentEvent.state === 'RESTORED'
+                  ? 'bg-slate-100 text-slate-700 border-slate-200'
+                  : 'bg-rose-50 text-rose-800 border-rose-200'
+              }`}>
+                {isEligibleForApproval ? 'Ready for Signature' : currentEvent.state === 'RESTORED' ? 'Restored' : 'Blocked by Safety Policy'}
+              </span>
+            </div>
+
+            {!isEligibleForApproval && currentEvent.state !== 'RESTORED' && (
+              <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Release authorization blocked by safety protocol:</span>
+                  <p className="mt-0.5 text-amber-800">
+                    Mandatory physical verification criteria have not been satisfied (minimum 0.20 mg/L chlorine residual, 15-minute scour flush, or pipe repair inspection). You may enforce HOLD or request additional field sampling below.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">
+                  Authorized Operator Name:
+                </label>
+                <input
+                  type="text"
+                  value={supervisorName}
+                  onChange={(e) => setSupervisorName(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 text-xs focus:border-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-medium mb-1">
+                  Authorization Role:
+                </label>
+                <select
+                  value={supervisorRole}
+                  onChange={(e) =>
+                    setSupervisorRole(e.target.value as 'SUPERVISOR' | 'CHIEF_WATER_ENGINEER')
+                  }
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 text-xs focus:border-sky-500"
+                >
+                  <option value="SUPERVISOR">Distribution Operations Supervisor</option>
+                  <option value="CHIEF_WATER_ENGINEER">Chief Water Works Engineer</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-700 font-medium text-xs mb-1">
+                Decision Rationale (Permanent Audit Log Entry):
+              </label>
+              <textarea
+                rows={2}
+                value={rationale}
+                onChange={(e) => setRationale(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:border-sky-500"
+              />
+            </div>
+
+            {/* Statutory Checkbox */}
+            <label className="flex items-start space-x-3 cursor-pointer p-3.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300">
+              <input
+                type="checkbox"
+                checked={complianceChecked}
+                onChange={(e) => setComplianceChecked(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-sky-600 border-slate-300 focus:ring-sky-500"
+              />
+              <span className="text-xs text-slate-700 leading-relaxed">
+                I hereby certify under statutory municipal guidelines that physical line scouring was executed and free chlorine residual was verified &ge; 0.20 mg/L prior to authorizing water release.
+              </span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => handleDecision('APPROVE')}
+                disabled={isSubmitting || !isEligibleForApproval || !complianceChecked}
+                className="w-full sm:w-1/2 min-h-[48px] py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-2 border border-transparent"
+                title={
+                  !isEligibleForApproval
+                    ? 'Blocked: Mandatory field verification evidence is incomplete or failed'
+                    : !complianceChecked
+                    ? 'Please check the statutory certification box above'
+                    : 'Authorize release of drinking water'
+                }
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Authorize Service Restoration</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDecision('REQUEST_MORE_VERIFICATION')}
+                disabled={isSubmitting}
+                className="w-full sm:w-1/4 min-h-[48px] py-3 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Request More Checks</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDecision('REJECT_HOLD')}
+                disabled={isSubmitting}
+                className="w-full sm:w-1/4 min-h-[48px] py-3 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5"
+              >
+                <AlertOctagon className="w-3.5 h-3.5" />
+                <span>Enforce HOLD</span>
+              </button>
+            </div>
+
+            {feedback && (
+              <div
+                className={`p-3.5 rounded-lg border text-xs ${
+                  feedback.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
+                    : 'bg-rose-50 border-rose-300 text-rose-900'
+                }`}
+              >
+                {feedback.message}
+              </div>
+            )}
+          </div>
+
           {/* SUPERVISOR OPERATIONAL INTELLIGENCE CONSOLE */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -563,6 +726,11 @@ export function SupervisorReview({
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2 text-[11px] text-purple-800 bg-purple-50/60 px-3 py-1.5 rounded-lg border border-purple-200/50">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>Advisory Intelligence Layer (Amazon Bedrock Nova Micro) • Operational hypotheses are unconfirmed suggestions and do not override physical engineering gates.</span>
             </div>
 
             {/* AI INCIDENT INTELLIGENCE BRIEF DISPLAY */}
@@ -694,121 +862,6 @@ export function SupervisorReview({
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* GATED AUTHORIZATION SIGN-OFF */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2 border-b border-slate-200 pb-3">
-              <ShieldCheck className="w-4 h-4 text-purple-700" />
-              <span>Supervisor Release Authorization Sign-Off</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block text-slate-700 font-medium mb-1">
-                  Authorized Operator Name:
-                </label>
-                <input
-                  type="text"
-                  value={supervisorName}
-                  onChange={(e) => setSupervisorName(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 text-xs focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-medium mb-1">
-                  Authorization Role:
-                </label>
-                <select
-                  value={supervisorRole}
-                  onChange={(e) =>
-                    setSupervisorRole(e.target.value as 'SUPERVISOR' | 'CHIEF_WATER_ENGINEER')
-                  }
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 text-xs focus:border-sky-500"
-                >
-                  <option value="SUPERVISOR">Distribution Operations Supervisor</option>
-                  <option value="CHIEF_WATER_ENGINEER">Chief Water Works Engineer</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-medium text-xs mb-1">
-                Decision Rationale (Permanent Audit Log Entry):
-              </label>
-              <textarea
-                rows={2}
-                value={rationale}
-                onChange={(e) => setRationale(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:border-sky-500"
-              />
-            </div>
-
-            {/* Statutory Checkbox */}
-            <label className="flex items-start space-x-3 cursor-pointer p-3.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300">
-              <input
-                type="checkbox"
-                checked={complianceChecked}
-                onChange={(e) => setComplianceChecked(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-sky-600 border-slate-300 focus:ring-sky-500"
-              />
-              <span className="text-xs text-slate-700 leading-relaxed">
-                I hereby certify under statutory municipal guidelines that physical line scouring was executed and free chlorine residual was verified &ge; 0.20 mg/L prior to authorizing water release.
-              </span>
-            </label>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => handleDecision('APPROVE')}
-                disabled={isSubmitting || !isEligibleForApproval || !complianceChecked}
-                className="w-full sm:w-1/2 min-h-[48px] py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-2 border border-transparent"
-                title={
-                  !isEligibleForApproval
-                    ? 'Blocked: Mandatory field verification evidence is incomplete or failed'
-                    : !complianceChecked
-                    ? 'Please check the statutory certification box above'
-                    : 'Authorize release of drinking water'
-                }
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Authorize Service Restoration</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDecision('REQUEST_MORE_VERIFICATION')}
-                disabled={isSubmitting}
-                className="w-full sm:w-1/4 min-h-[48px] py-3 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>Request More Checks</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDecision('REJECT_HOLD')}
-                disabled={isSubmitting}
-                className="w-full sm:w-1/4 min-h-[48px] py-3 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <AlertOctagon className="w-3.5 h-3.5" />
-                <span>Enforce HOLD</span>
-              </button>
-            </div>
-
-            {feedback && (
-              <div
-                className={`p-3.5 rounded-lg border text-xs ${
-                  feedback.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-medium'
-                    : 'bg-rose-50 border-rose-300 text-rose-900'
-                }`}
-              >
-                {feedback.message}
               </div>
             )}
           </div>

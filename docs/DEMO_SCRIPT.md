@@ -85,7 +85,7 @@
 ## Recording Checklist & Fallback Strategy
 
 ### Assets to Capture:
-- [ ] 1080p full-screen browser capture at 60fps (Dark Navy theme, 100% zoom).
+- [ ] 1080p full-screen browser capture at 60fps (Civic light high-contrast theme, 100% zoom).
 - [ ] Mobile viewport capture of `/field` (e.g., iPhone 15 Pro resolution 393×852).
 - [ ] Clean microphone voiceover with crisp audio.
 

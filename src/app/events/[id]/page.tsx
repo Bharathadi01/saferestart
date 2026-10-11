@@ -62,7 +62,7 @@ export default function EventDetailPage({
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
         <Link
           href={`/zones/${zone.id}`}
-          className="inline-flex items-center text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors"
+          className="inline-flex items-center text-xs text-sky-700 hover:text-sky-800 font-medium transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5 mr-1" />
           <span>Back to Zone: {zone.name}</span>
